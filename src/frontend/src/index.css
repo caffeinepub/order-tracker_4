@@ -1,0 +1,64 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+    /* Page bg: #F5F8FB → oklch(0.967 0.012 230) */
+    --background: 0.967 0.012 230;
+    /* Card bg: #EAF1F6 → oklch(0.946 0.018 225) */
+    --card: 0.946 0.018 225;
+    --card-foreground: 0.13 0.018 255;
+    /* Card border: #D6E0E8 → oklch(0.892 0.022 225) */
+    --border: 0.892 0.022 225;
+    --input: 0.892 0.022 225;
+    /* Primary text: #111827 → oklch(0.174 0.018 255) */
+    --foreground: 0.174 0.018 255;
+    /* Secondary: #374151 → oklch(0.334 0.022 260) */
+    --secondary: 0.334 0.022 260;
+    --secondary-foreground: 0.967 0.012 230;
+    /* Muted: #6B7280 → oklch(0.524 0.018 260) */
+    --muted: 0.946 0.018 225;
+    --muted-foreground: 0.524 0.018 260;
+    /* Accent blue: #2B6CB0 → oklch(0.484 0.13 244) */
+    --primary: 0.484 0.13 244;
+    --primary-foreground: 0.985 0 0;
+    --accent: 0.906 0.05 240;
+    --accent-foreground: 0.484 0.13 244;
+    /* Status pill: #DDEBFF bg → oklch(0.924 0.056 244) */
+    --status-pill-bg: 0.924 0.056 244;
+    --status-pill-text: 0.484 0.13 244;
+    /* Checked checkbox: #1F4E79 → oklch(0.384 0.11 244) */
+    --checkbox-checked: 0.384 0.11 244;
+    --popover: 0.967 0.012 230;
+    --popover-foreground: 0.174 0.018 255;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+    --ring: 0.484 0.13 244;
+    --chart-1: 0.646 0.222 41.116;
+    --chart-2: 0.6 0.118 184.704;
+    --chart-3: 0.398 0.07 227.392;
+    --chart-4: 0.828 0.189 84.429;
+    --chart-5: 0.769 0.188 70.08;
+    --sidebar: 0.946 0.018 225;
+    --sidebar-foreground: 0.174 0.018 255;
+    --sidebar-primary: 0.484 0.13 244;
+    --sidebar-primary-foreground: 0.985 0 0;
+    --sidebar-accent: 0.924 0.056 244;
+    --sidebar-accent-foreground: 0.484 0.13 244;
+    --sidebar-border: 0.892 0.022 225;
+    --sidebar-ring: 0.484 0.13 244;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", sans-serif;
+  }
+}
