@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { OverallStatus } from "../backend";
@@ -56,6 +56,18 @@ const statusLabel: Record<OverallStatus, string> = {
   [OverallStatus.completed]: "Completed",
 };
 
+interface ProductItem {
+  product: string;
+  designRef: string;
+  color: string;
+  size: string;
+  qty: string;
+}
+
+function emptyItem(): ProductItem {
+  return { product: "", designRef: "", color: "", size: "", qty: "" };
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -71,18 +83,24 @@ export default function NewOrderDialog({
   const [form, setForm] = useState({
     orderNumber: "",
     clientName: "",
-    productType: "",
-    color: "",
-    sizeLength: "",
-    sizeWidth: "",
-    sizeHeight: "",
-    quantity: "",
     dispatchDate: "",
     overallStatus: OverallStatus.waitingForApproval,
   });
+  const [items, setItems] = useState<ProductItem[]>([emptyItem()]);
 
   const set = (key: string, value: string) =>
     setForm((p) => ({ ...p, [key]: value }));
+
+  const updateItem = (idx: number, field: keyof ProductItem, value: string) => {
+    setItems((prev) =>
+      prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)),
+    );
+  };
+
+  const addItem = () => setItems((prev) => [...prev, emptyItem()]);
+
+  const removeItem = (idx: number) =>
+    setItems((prev) => prev.filter((_, i) => i !== idx));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,42 +108,40 @@ export default function NewOrderDialog({
       toast.error("Order number and client name are required");
       return;
     }
-    const id = await createOrder.mutateAsync({
-      orderNumber: form.orderNumber,
-      clientName: form.clientName,
-      productType: form.productType,
-      color: form.color,
-      size: {
-        length: Number(form.sizeLength) || 0,
-        width: Number(form.sizeWidth) || 0,
-        height: Number(form.sizeHeight) || 0,
-      },
-      quantity: BigInt(Number(form.quantity) || 0),
-      dispatchDate: form.dispatchDate
-        ? BigInt(new Date(form.dispatchDate).getTime()) * 1_000_000n
-        : 0n,
-      overallStatus: form.overallStatus,
-      confirmationChecklist: emptyChecklist,
-    });
-    toast.success("Order created");
-    onCreated(id);
-    setForm({
-      orderNumber: "",
-      clientName: "",
-      productType: "",
-      color: "",
-      sizeLength: "",
-      sizeWidth: "",
-      sizeHeight: "",
-      quantity: "",
-      dispatchDate: "",
-      overallStatus: OverallStatus.waitingForApproval,
-    });
+    try {
+      const id = await createOrder.mutateAsync({
+        orderNumber: form.orderNumber,
+        clientName: form.clientName,
+        productType: JSON.stringify(items),
+        color: "",
+        size: { length: 0, width: 0, height: 0 },
+        quantity: 0n,
+        dispatchDate: form.dispatchDate
+          ? BigInt(new Date(form.dispatchDate).getTime()) * 1_000_000n
+          : 0n,
+        overallStatus: form.overallStatus,
+        confirmationChecklist: emptyChecklist,
+      });
+      toast.success("Order created");
+      onCreated(id);
+      onOpenChange(false);
+      setForm({
+        orderNumber: "",
+        clientName: "",
+        dispatchDate: "",
+        overallStatus: OverallStatus.waitingForApproval,
+      });
+      setItems([emptyItem()]);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to create order",
+      );
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md" data-ocid="order.dialog">
+      <DialogContent className="max-w-2xl" data-ocid="order.dialog">
         <DialogHeader>
           <DialogTitle>New Order</DialogTitle>
         </DialogHeader>
@@ -155,40 +171,6 @@ export default function NewOrderDialog({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-medium text-muted-foreground">
-                Product Type
-              </Label>
-              <Input
-                value={form.productType}
-                onChange={(e) => set("productType", e.target.value)}
-                placeholder="Knitwear"
-                data-ocid="order.input"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">
-                Color
-              </Label>
-              <Input
-                value={form.color}
-                onChange={(e) => set("color", e.target.value)}
-                placeholder="Navy Blue"
-                data-ocid="order.input"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">
-                Quantity
-              </Label>
-              <Input
-                type="number"
-                value={form.quantity}
-                onChange={(e) => set("quantity", e.target.value)}
-                placeholder="100"
-                data-ocid="order.input"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">
                 Dispatch Date
               </Label>
               <Input
@@ -198,38 +180,7 @@ export default function NewOrderDialog({
                 data-ocid="order.input"
               />
             </div>
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label className="text-xs font-medium text-muted-foreground">
-                Size (L × W × H)
-              </Label>
-              <div className="flex gap-1.5">
-                <Input
-                  type="number"
-                  placeholder="Length"
-                  value={form.sizeLength}
-                  onChange={(e) => set("sizeLength", e.target.value)}
-                  className="min-w-0"
-                  data-ocid="order.input"
-                />
-                <Input
-                  type="number"
-                  placeholder="Width"
-                  value={form.sizeWidth}
-                  onChange={(e) => set("sizeWidth", e.target.value)}
-                  className="min-w-0"
-                  data-ocid="order.input"
-                />
-                <Input
-                  type="number"
-                  placeholder="Height"
-                  value={form.sizeHeight}
-                  onChange={(e) => set("sizeHeight", e.target.value)}
-                  className="min-w-0"
-                  data-ocid="order.input"
-                />
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-medium text-muted-foreground">
                 Status
               </Label>
@@ -250,6 +201,133 @@ export default function NewOrderDialog({
               </Select>
             </div>
           </div>
+
+          {/* Product Items Table */}
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground mb-2 block">
+              Products
+            </Label>
+            <div className="border border-border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/50 border-b border-border">
+                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5 w-8">
+                      #
+                    </th>
+                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
+                      Product
+                    </th>
+                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
+                      Design Ref
+                    </th>
+                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
+                      Color
+                    </th>
+                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
+                      Size
+                    </th>
+                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5 w-14">
+                      Qty
+                    </th>
+                    <th className="w-6" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, idx) => (
+                    <tr
+                      // biome-ignore lint/suspicious/noArrayIndexKey: items have no stable id
+                      key={idx}
+                      className="border-b border-border last:border-0 group hover:bg-muted/20 transition-colors"
+                      data-ocid={`order.item.${idx + 1}`}
+                    >
+                      <td className="px-2 py-0.5 text-[11px] text-muted-foreground">
+                        {idx + 1}
+                      </td>
+                      <td className="px-1 py-0.5">
+                        <Input
+                          value={item.product}
+                          onChange={(e) =>
+                            updateItem(idx, "product", e.target.value)
+                          }
+                          className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                          placeholder="Product name"
+                          data-ocid="order.input"
+                        />
+                      </td>
+                      <td className="px-1 py-0.5">
+                        <Input
+                          value={item.designRef}
+                          onChange={(e) =>
+                            updateItem(idx, "designRef", e.target.value)
+                          }
+                          className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                          placeholder="Ref"
+                          data-ocid="order.input"
+                        />
+                      </td>
+                      <td className="px-1 py-0.5">
+                        <Input
+                          value={item.color}
+                          onChange={(e) =>
+                            updateItem(idx, "color", e.target.value)
+                          }
+                          className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                          placeholder="Color"
+                          data-ocid="order.input"
+                        />
+                      </td>
+                      <td className="px-1 py-0.5">
+                        <Input
+                          value={item.size}
+                          onChange={(e) =>
+                            updateItem(idx, "size", e.target.value)
+                          }
+                          className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                          placeholder="Size"
+                          data-ocid="order.input"
+                        />
+                      </td>
+                      <td className="px-1 py-0.5">
+                        <Input
+                          value={item.qty}
+                          onChange={(e) =>
+                            updateItem(idx, "qty", e.target.value)
+                          }
+                          className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                          placeholder="0"
+                          data-ocid="order.input"
+                        />
+                      </td>
+                      <td className="px-1 py-0.5">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                          onClick={() => removeItem(idx)}
+                          data-ocid={`order.delete_button.${idx + 1}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mt-1.5 h-7 text-xs text-muted-foreground hover:text-foreground gap-1 px-2"
+              onClick={addItem}
+              data-ocid="order.button"
+            >
+              <Plus className="w-3 h-3" />
+              Add Item
+            </Button>
+          </div>
+
           <div className="flex justify-end gap-2 pt-1">
             <Button
               type="button"

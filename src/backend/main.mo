@@ -8,6 +8,9 @@ import Runtime "mo:core/Runtime";
 import Time "mo:core/Time";
 import Float "mo:core/Float";
 import Int "mo:core/Int";
+import Principal "mo:core/Principal";
+import Prim "mo:prim";
+import Storage "blob-storage/Storage";
 
 actor {
   func boolToNat(b : Bool) : Nat {
@@ -366,5 +369,54 @@ actor {
 
   public query ({ caller }) func getOrdersByClientName(clientName : Text) : async [OrderData] {
     orders.values().filter(func(order) { order.clientName == clientName }).toArray();
+  };
+
+  // ── Blob Storage ──────────────────────────────────────────────────────────
+
+  transient let _caffeineStorageState : Storage.State = Storage.new();
+
+  public shared ({ caller }) func _caffeineStorageRefillCashier(
+    refillInformation : ?{ proposed_top_up_amount : ?Nat }
+  ) : async { success : ?Bool; topped_up_amount : ?Nat } {
+    let cashier = await Storage.getCashierPrincipal();
+    if (cashier != caller) {
+      Runtime.trap("Unauthorized access");
+    };
+    await Storage.refillCashier(_caffeineStorageState, cashier, refillInformation);
+  };
+
+  public shared ({ caller }) func _caffeineStorageUpdateGatewayPrincipals() : async () {
+    await Storage.updateGatewayPrincipals(_caffeineStorageState);
+  };
+
+  public query ({ caller }) func _caffeineStorageBlobIsLive(hash : Blob) : async Bool {
+    Prim.isStorageBlobLive(hash);
+  };
+
+  public query ({ caller }) func _caffeineStorageBlobsToDelete() : async [Blob] {
+    if (not Storage.isAuthorized(_caffeineStorageState, caller)) {
+      Runtime.trap("Unauthorized access");
+    };
+    let deadBlobs = Prim.getDeadBlobs();
+    switch (deadBlobs) {
+      case (null) { [] };
+      case (?deadBlobs) { deadBlobs.sliceToArray(0, 10000) };
+    };
+  };
+
+  public shared ({ caller }) func _caffeineStorageConfirmBlobDeletion(blobs : [Blob]) : async () {
+    if (not Storage.isAuthorized(_caffeineStorageState, caller)) {
+      Runtime.trap("Unauthorized access");
+    };
+    Prim.pruneConfirmedDeadBlobs(blobs);
+    type GC = actor {
+      __motoko_gc_trigger : () -> async ();
+    };
+    let myGC = actor (debug_show (Prim.getSelfPrincipal<system>())) : GC;
+    await myGC.__motoko_gc_trigger();
+  };
+
+  public shared ({ caller }) func _caffeineStorageCreateCertificate(blobHash : Text) : async { method : Text; blob_hash : Text } {
+    { method = "upload"; blob_hash = blobHash };
   };
 };

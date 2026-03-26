@@ -21,12 +21,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { ConfirmationChecklist, OrderData } from "../backend";
 import { OverallStatus } from "../backend";
 import { useDeleteOrder, useUpdateOrder } from "../hooks/useQueries";
+import OrderFiles from "./OrderFiles";
 
 const statusLabel: Record<OverallStatus, string> = {
   [OverallStatus.waitingForApproval]: "Waiting for Approval",
@@ -121,6 +122,33 @@ function dateStringToBigint(s: string): bigint {
   return BigInt(new Date(s).getTime()) * 1_000_000n;
 }
 
+interface ProductItem {
+  product: string;
+  designRef: string;
+  color: string;
+  size: string;
+  qty: string;
+}
+
+function emptyItem(): ProductItem {
+  return { product: "", designRef: "", color: "", size: "", qty: "" };
+}
+
+function parseItems(productType: string): ProductItem[] {
+  try {
+    const parsed = JSON.parse(productType);
+    if (Array.isArray(parsed)) return parsed as ProductItem[];
+  } catch {
+    // not JSON
+  }
+  if (productType) {
+    return [
+      { product: productType, designRef: "", color: "", size: "", qty: "" },
+    ];
+  }
+  return [emptyItem()];
+}
+
 export default function OrderView({
   order,
   onDeleted,
@@ -134,15 +162,12 @@ export default function OrderView({
   const [form, setForm] = useState({
     orderNumber: order.orderNumber,
     clientName: order.clientName,
-    productType: order.productType,
-    color: order.color,
-    sizeLength: String(order.size.length),
-    sizeWidth: String(order.size.width),
-    sizeHeight: String(order.size.height),
-    quantity: String(order.quantity),
     dispatchDate: bigintToDateString(order.dispatchDate),
     overallStatus: order.overallStatus,
   });
+  const [items, setItems] = useState<ProductItem[]>(() =>
+    parseItems(order.productType),
+  );
   const [checklist, setChecklist] = useState<ConfirmationChecklist>(
     order.confirmationChecklist,
   );
@@ -154,29 +179,31 @@ export default function OrderView({
     setForm({
       orderNumber: order.orderNumber,
       clientName: order.clientName,
-      productType: order.productType,
-      color: order.color,
-      sizeLength: String(order.size.length),
-      sizeWidth: String(order.size.width),
-      sizeHeight: String(order.size.height),
-      quantity: String(order.quantity),
       dispatchDate: bigintToDateString(order.dispatchDate),
       overallStatus: order.overallStatus,
     });
+    setItems(parseItems(order.productType));
     setChecklist(order.confirmationChecklist);
   }, [orderId]);
+
+  const updateItem = (idx: number, field: keyof ProductItem, value: string) => {
+    setItems((prev) =>
+      prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)),
+    );
+  };
+
+  const addItem = () => setItems((prev) => [...prev, emptyItem()]);
+
+  const removeItem = (idx: number) =>
+    setItems((prev) => prev.filter((_, i) => i !== idx));
 
   const buildInput = (cl: ConfirmationChecklist) => ({
     orderNumber: form.orderNumber,
     clientName: form.clientName,
-    productType: form.productType,
-    color: form.color,
-    size: {
-      length: Number(form.sizeLength) || 0,
-      width: Number(form.sizeWidth) || 0,
-      height: Number(form.sizeHeight) || 0,
-    },
-    quantity: BigInt(Number(form.quantity) || 0),
+    productType: JSON.stringify(items),
+    color: "",
+    size: { length: 0, width: 0, height: 0 },
+    quantity: 0n,
     dispatchDate: dateStringToBigint(form.dispatchDate),
     overallStatus: form.overallStatus,
     confirmationChecklist: cl,
@@ -260,34 +287,6 @@ export default function OrderView({
               data-ocid="order.input"
             />
           </Field>
-          <Field label="Product Type">
-            <Input
-              value={form.productType}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, productType: e.target.value }))
-              }
-              data-ocid="order.input"
-            />
-          </Field>
-          <Field label="Color">
-            <Input
-              value={form.color}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, color: e.target.value }))
-              }
-              data-ocid="order.input"
-            />
-          </Field>
-          <Field label="Quantity">
-            <Input
-              type="number"
-              value={form.quantity}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, quantity: e.target.value }))
-              }
-              data-ocid="order.input"
-            />
-          </Field>
           <Field label="Dispatch Date">
             <Input
               type="date"
@@ -297,40 +296,6 @@ export default function OrderView({
               }
               data-ocid="order.input"
             />
-          </Field>
-          <Field label="Size (L × W × H)">
-            <div className="flex gap-1.5">
-              <Input
-                type="number"
-                placeholder="L"
-                value={form.sizeLength}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, sizeLength: e.target.value }))
-                }
-                className="min-w-0"
-                data-ocid="order.input"
-              />
-              <Input
-                type="number"
-                placeholder="W"
-                value={form.sizeWidth}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, sizeWidth: e.target.value }))
-                }
-                className="min-w-0"
-                data-ocid="order.input"
-              />
-              <Input
-                type="number"
-                placeholder="H"
-                value={form.sizeHeight}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, sizeHeight: e.target.value }))
-                }
-                className="min-w-0"
-                data-ocid="order.input"
-              />
-            </div>
           </Field>
           <Field label="Overall Status">
             <Select
@@ -351,6 +316,130 @@ export default function OrderView({
               </SelectContent>
             </Select>
           </Field>
+        </div>
+
+        {/* Product Items Table */}
+        <div>
+          <Label className="text-xs font-medium text-muted-foreground mb-2 block">
+            Products
+          </Label>
+          <div className="border border-border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/50 border-b border-border">
+                  <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5 w-8">
+                    #
+                  </th>
+                  <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
+                    Product
+                  </th>
+                  <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
+                    Design Ref
+                  </th>
+                  <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
+                    Color
+                  </th>
+                  <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
+                    Size
+                  </th>
+                  <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5 w-14">
+                    Qty
+                  </th>
+                  <th className="w-6" />
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, idx) => (
+                  <tr
+                    // biome-ignore lint/suspicious/noArrayIndexKey: items have no stable id
+                    key={idx}
+                    className="border-b border-border last:border-0 group hover:bg-muted/20 transition-colors"
+                    data-ocid={`order.item.${idx + 1}`}
+                  >
+                    <td className="px-2 py-0.5 text-[11px] text-muted-foreground">
+                      {idx + 1}
+                    </td>
+                    <td className="px-1 py-0.5">
+                      <Input
+                        value={item.product}
+                        onChange={(e) =>
+                          updateItem(idx, "product", e.target.value)
+                        }
+                        className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        placeholder="Product name"
+                        data-ocid="order.input"
+                      />
+                    </td>
+                    <td className="px-1 py-0.5">
+                      <Input
+                        value={item.designRef}
+                        onChange={(e) =>
+                          updateItem(idx, "designRef", e.target.value)
+                        }
+                        className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        placeholder="Ref"
+                        data-ocid="order.input"
+                      />
+                    </td>
+                    <td className="px-1 py-0.5">
+                      <Input
+                        value={item.color}
+                        onChange={(e) =>
+                          updateItem(idx, "color", e.target.value)
+                        }
+                        className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        placeholder="Color"
+                        data-ocid="order.input"
+                      />
+                    </td>
+                    <td className="px-1 py-0.5">
+                      <Input
+                        value={item.size}
+                        onChange={(e) =>
+                          updateItem(idx, "size", e.target.value)
+                        }
+                        className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        placeholder="Size"
+                        data-ocid="order.input"
+                      />
+                    </td>
+                    <td className="px-1 py-0.5">
+                      <Input
+                        value={item.qty}
+                        onChange={(e) => updateItem(idx, "qty", e.target.value)}
+                        className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        placeholder="0"
+                        data-ocid="order.input"
+                      />
+                    </td>
+                    <td className="px-1 py-0.5">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                        onClick={() => removeItem(idx)}
+                        data-ocid={`order.delete_button.${idx + 1}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="mt-1.5 h-7 text-xs text-muted-foreground hover:text-foreground gap-1 px-2"
+            onClick={addItem}
+            data-ocid="order.button"
+          >
+            <Plus className="w-3 h-3" />
+            Add Item
+          </Button>
         </div>
 
         <div className="flex items-center justify-between pt-1 mt-auto">
@@ -404,7 +493,7 @@ export default function OrderView({
         </div>
       </div>
 
-      {/* Right: Checklist */}
+      {/* Right: Checklist + Files */}
       <div
         className="bg-card border border-border rounded-xl shadow-card p-6 flex flex-col gap-5"
         data-ocid="checklist.panel"
@@ -470,6 +559,11 @@ export default function OrderView({
               </div>
             );
           })}
+        </div>
+
+        {/* Order Files section */}
+        <div className="border-t border-border pt-5 mt-1">
+          <OrderFiles orderId={order.id} />
         </div>
       </div>
     </div>
