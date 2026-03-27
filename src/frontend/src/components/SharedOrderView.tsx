@@ -1,10 +1,15 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { HttpAgent } from "@icp-sdk/core/agent";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ConfirmationChecklist, OrderData } from "../backend";
 import { OverallStatus } from "../backend";
+import { loadConfig } from "../config";
 import { useActor } from "../hooks/useActor";
+import { useOrderFiles } from "../hooks/useOrderFiles";
+import { StorageClient } from "../utils/StorageClient";
 
 const statusLabel: Record<OverallStatus, string> = {
   [OverallStatus.waitingForApproval]: "Waiting for Approval",
@@ -92,23 +97,27 @@ const STAGES: ChecklistStage[] = [
 
 interface ProductItem {
   product: string;
-  designRef: string;
-  color: string;
   size: string;
   qty: string;
+  done: boolean;
 }
 
 function parseItems(productType: string): ProductItem[] {
   try {
     const parsed = JSON.parse(productType);
-    if (Array.isArray(parsed)) return parsed as ProductItem[];
+    if (Array.isArray(parsed)) {
+      return parsed.map((row: any) => ({
+        product: row.product ?? "",
+        size: row.size ?? "",
+        qty: row.qty ?? "",
+        done: row.done ?? false,
+      }));
+    }
   } catch {
     // not JSON
   }
   if (productType) {
-    return [
-      { product: productType, designRef: "", color: "", size: "", qty: "" },
-    ];
+    return [{ product: productType, size: "", qty: "", done: false }];
   }
   return [];
 }
@@ -125,6 +134,107 @@ function countChecked(
   items: { key: string }[],
 ): number {
   return items.filter((item) => !!stageData[item.key]).length;
+}
+
+interface ResolvedFile {
+  hash: string;
+  name: string;
+  mimeType: string;
+  url: string;
+}
+
+function SharedOrderFiles({ orderId }: { orderId: bigint }) {
+  const { files } = useOrderFiles(orderId);
+  const [resolvedFiles, setResolvedFiles] = useState<ResolvedFile[]>([]);
+  const storageClientRef = useRef<StorageClient | null>(null);
+
+  const getStorageClient = useCallback(async (): Promise<StorageClient> => {
+    if (storageClientRef.current) return storageClientRef.current;
+    const config = await loadConfig();
+    const isLocal = config.backend_host?.includes("localhost");
+    const agent = HttpAgent.createSync({
+      host: isLocal ? config.backend_host : undefined,
+    });
+    if (isLocal) {
+      await agent.fetchRootKey().catch(() => {});
+    }
+    const client = new StorageClient(
+      config.bucket_name,
+      config.storage_gateway_url,
+      config.backend_canister_id,
+      config.project_id,
+      agent,
+    );
+    storageClientRef.current = client;
+    return client;
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function resolve() {
+      const client = await getStorageClient();
+      const resolved = await Promise.all(
+        files.map(async (f) => {
+          const url = await client.getDirectURL(f.hash);
+          return { hash: f.hash, name: f.name, mimeType: f.mimeType, url };
+        }),
+      );
+      if (!cancelled) setResolvedFiles(resolved);
+    }
+    if (files.length > 0) {
+      resolve();
+    } else {
+      setResolvedFiles([]);
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [files, getStorageClient]);
+
+  if (files.length === 0) return null;
+
+  return (
+    <div
+      className="bg-card border border-border border-l-4 border-l-emerald-500 rounded-xl shadow-sm p-5 flex flex-col gap-4"
+      data-ocid="shared.files.panel"
+    >
+      <h2 className="text-sm font-bold text-foreground tracking-tight">
+        Order Files
+      </h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {resolvedFiles.map((f, idx) => (
+          <a
+            key={f.hash}
+            href={f.url}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg overflow-hidden border border-border shadow-sm block"
+            data-ocid={`shared.files.item.${idx + 1}`}
+          >
+            {f.mimeType.startsWith("image/") ? (
+              <img
+                src={f.url}
+                alt={f.name}
+                className="w-full aspect-video object-cover"
+              />
+            ) : (
+              <div className="w-full aspect-video flex flex-col items-center justify-center bg-muted/50 gap-1 px-2">
+                <FileText className="w-5 h-5 text-muted-foreground" />
+                <p className="text-[10px] text-muted-foreground text-center truncate w-full">
+                  {f.name}
+                </p>
+              </div>
+            )}
+          </a>
+        ))}
+        {files.length > 0 && resolvedFiles.length === 0 && (
+          <div className="col-span-2 sm:col-span-3 flex justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function SharedOrderView({ orderId }: { orderId: bigint }) {
@@ -210,7 +320,7 @@ export default function SharedOrderView({ orderId }: { orderId: bigint }) {
                 <ReadField label="Client Name" value={order.clientName} />
                 <ReadField
                   label="Dispatch Date"
-                  value={bigintToDateString(order.dispatchDate) || "—"}
+                  value={bigintToDateString(order.dispatchDate) || "\u2014"}
                 />
                 <ReadField
                   label="Overall Status"
@@ -227,23 +337,17 @@ export default function SharedOrderView({ orderId }: { orderId: bigint }) {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-indigo-50">
-                        <th className="text-left text-[10px] font-bold text-indigo-700 px-2.5 py-2 w-7 uppercase tracking-wider">
-                          #
+                        <th className="text-left text-[10px] font-bold text-indigo-700 px-2.5 py-2 w-10 uppercase tracking-wider">
+                          Done
                         </th>
                         <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
                           Product
                         </th>
                         <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
-                          Ref
-                        </th>
-                        <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
-                          Color
-                        </th>
-                        <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
                           Size
                         </th>
-                        <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 w-12 uppercase tracking-wider">
-                          Qty
+                        <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 w-16 uppercase tracking-wider">
+                          Quantity
                         </th>
                       </tr>
                     </thead>
@@ -252,26 +356,48 @@ export default function SharedOrderView({ orderId }: { orderId: bigint }) {
                         <tr
                           // biome-ignore lint/suspicious/noArrayIndexKey: items have no stable id
                           key={idx}
-                          className="border-b border-border/60 last:border-0"
+                          className={cn(
+                            "border-b border-border/60 last:border-0",
+                            item.done && "bg-muted/20",
+                          )}
                           data-ocid={`shared.order.item.${idx + 1}`}
                         >
-                          <td className="px-2.5 py-2 text-[11px] font-semibold text-muted-foreground">
-                            {idx + 1}
+                          <td className="px-2.5 py-2 text-center">
+                            <Checkbox
+                              checked={item.done}
+                              disabled
+                              className="rounded data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            />
                           </td>
-                          <td className="px-2 py-2 text-sm text-foreground">
-                            {item.product || "—"}
+                          <td
+                            className={cn(
+                              "px-2 py-2 text-sm",
+                              item.done
+                                ? "line-through text-muted-foreground"
+                                : "text-foreground",
+                            )}
+                          >
+                            {item.product || "\u2014"}
                           </td>
-                          <td className="px-2 py-2 text-sm text-foreground">
-                            {item.designRef || "—"}
+                          <td
+                            className={cn(
+                              "px-2 py-2 text-sm",
+                              item.done
+                                ? "line-through text-muted-foreground"
+                                : "text-foreground",
+                            )}
+                          >
+                            {item.size || "\u2014"}
                           </td>
-                          <td className="px-2 py-2 text-sm text-foreground">
-                            {item.color || "—"}
-                          </td>
-                          <td className="px-2 py-2 text-sm text-foreground">
-                            {item.size || "—"}
-                          </td>
-                          <td className="px-2 py-2 text-sm text-foreground">
-                            {item.qty || "—"}
+                          <td
+                            className={cn(
+                              "px-2 py-2 text-sm",
+                              item.done
+                                ? "line-through text-muted-foreground"
+                                : "text-foreground",
+                            )}
+                          >
+                            {item.qty || "\u2014"}
                           </td>
                         </tr>
                       ))}
@@ -280,6 +406,9 @@ export default function SharedOrderView({ orderId }: { orderId: bigint }) {
                 </div>
               </div>
             </div>
+
+            {/* Order Files */}
+            <SharedOrderFiles orderId={orderId} />
 
             {/* Checklist Panel */}
             <div

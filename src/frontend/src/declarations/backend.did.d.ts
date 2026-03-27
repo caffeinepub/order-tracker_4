@@ -36,6 +36,12 @@ export interface OrderData {
   'orderNumber' : string,
   'overallStatus' : OverallStatus,
 }
+export interface OrderFileEntry {
+  'hash' : string,
+  'name' : string,
+  'mimeType' : string,
+  'uploadedAt' : bigint,
+}
 export interface OrderInput {
   'confirmationChecklist' : ConfirmationChecklist,
   'clientName' : string,
@@ -73,12 +79,41 @@ export interface Production {
 }
 export interface Size { 'height' : number, 'length' : number, 'width' : number }
 export type Time = bigint;
+export interface _CaffeineStorageCreateCertificateResult {
+  'method' : string,
+  'blob_hash' : string,
+}
+export interface _CaffeineStorageRefillInformation {
+  'proposed_top_up_amount' : [] | [bigint],
+}
+export interface _CaffeineStorageRefillResult {
+  'success' : [] | [boolean],
+  'topped_up_amount' : [] | [bigint],
+}
 export interface _SERVICE {
+  '_caffeineStorageBlobIsLive' : ActorMethod<[Uint8Array], boolean>,
+  '_caffeineStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_caffeineStorageConfirmBlobDeletion' : ActorMethod<
+    [Array<Uint8Array>],
+    undefined
+  >,
+  '_caffeineStorageCreateCertificate' : ActorMethod<
+    [string],
+    _CaffeineStorageCreateCertificateResult
+  >,
+  '_caffeineStorageRefillCashier' : ActorMethod<
+    [[] | [_CaffeineStorageRefillInformation]],
+    _CaffeineStorageRefillResult
+  >,
+  '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
+  'addOrderFile' : ActorMethod<[bigint, string, string, string], undefined>,
   'createOrder' : ActorMethod<[OrderInput], bigint>,
   'deleteOrder' : ActorMethod<[bigint], undefined>,
   'getAllOrders' : ActorMethod<[], Array<OrderData>>,
   'getOrder' : ActorMethod<[bigint], OrderData>,
+  'getOrderFiles' : ActorMethod<[bigint], Array<OrderFileEntry>>,
   'getOrdersByClientName' : ActorMethod<[string], Array<OrderData>>,
+  'removeOrderFile' : ActorMethod<[bigint, string], undefined>,
   'updateOrder' : ActorMethod<[bigint, OrderInput], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

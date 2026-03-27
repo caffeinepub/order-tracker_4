@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useActor } from "./useActor";
 
 export interface OrderFileEntry {
   hash: string;
@@ -11,7 +12,7 @@ function storageKey(orderId: bigint): string {
   return `order-files-${orderId.toString()}`;
 }
 
-function loadFiles(orderId: bigint): OrderFileEntry[] {
+function loadCache(orderId: bigint): OrderFileEntry[] {
   try {
     const raw = localStorage.getItem(storageKey(orderId));
     if (!raw) return [];
@@ -21,45 +22,69 @@ function loadFiles(orderId: bigint): OrderFileEntry[] {
   }
 }
 
-function saveFiles(orderId: bigint, files: OrderFileEntry[]): void {
+function saveCache(orderId: bigint, files: OrderFileEntry[]): void {
   localStorage.setItem(storageKey(orderId), JSON.stringify(files));
 }
 
 export function useOrderFiles(orderId: bigint) {
+  const { actor } = useActor();
   const [files, setFiles] = useState<OrderFileEntry[]>(() =>
-    loadFiles(orderId),
+    loadCache(orderId),
   );
 
+  // On mount or orderId change, seed from cache then fetch from backend
   useEffect(() => {
-    setFiles(loadFiles(orderId));
-  }, [orderId]);
+    setFiles(loadCache(orderId));
+
+    if (!actor) return;
+
+    actor
+      .getOrderFiles(orderId)
+      .then((entries) => {
+        const mapped: OrderFileEntry[] = entries.map((e) => ({
+          hash: e.hash,
+          name: e.name,
+          mimeType: e.mimeType,
+          uploadedAt: Number(e.uploadedAt),
+        }));
+        setFiles(mapped);
+        saveCache(orderId, mapped);
+      })
+      .catch(() => {
+        // Keep showing cached data if fetch fails
+      });
+  }, [orderId, actor]);
 
   const addFile = useCallback(
-    (hash: string, name: string, mimeType: string) => {
+    async (hash: string, name: string, mimeType: string) => {
+      if (!actor) return;
+      await actor.addOrderFile(orderId, hash, name, mimeType);
+      const entry: OrderFileEntry = {
+        hash,
+        name,
+        mimeType,
+        uploadedAt: Date.now(),
+      };
       setFiles((prev) => {
-        const entry: OrderFileEntry = {
-          hash,
-          name,
-          mimeType,
-          uploadedAt: Date.now(),
-        };
         const next = [...prev, entry];
-        saveFiles(orderId, next);
+        saveCache(orderId, next);
         return next;
       });
     },
-    [orderId],
+    [orderId, actor],
   );
 
   const removeFile = useCallback(
-    (hash: string) => {
+    async (hash: string) => {
+      if (!actor) return;
+      await actor.removeOrderFile(orderId, hash);
       setFiles((prev) => {
         const next = prev.filter((f) => f.hash !== hash);
-        saveFiles(orderId, next);
+        saveCache(orderId, next);
         return next;
       });
     },
-    [orderId],
+    [orderId, actor],
   );
 
   return { files, addFile, removeFile };

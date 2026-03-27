@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -58,14 +59,13 @@ const statusLabel: Record<OverallStatus, string> = {
 
 interface ProductItem {
   product: string;
-  designRef: string;
-  color: string;
   size: string;
   qty: string;
+  done: boolean;
 }
 
 function emptyItem(): ProductItem {
-  return { product: "", designRef: "", color: "", size: "", qty: "" };
+  return { product: "", size: "", qty: "", done: false };
 }
 
 interface Props {
@@ -91,7 +91,11 @@ export default function NewOrderDialog({
   const set = (key: string, value: string) =>
     setForm((p) => ({ ...p, [key]: value }));
 
-  const updateItem = (idx: number, field: keyof ProductItem, value: string) => {
+  const updateItem = (
+    idx: number,
+    field: keyof ProductItem,
+    value: string | boolean,
+  ) => {
     setItems((prev) =>
       prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)),
     );
@@ -211,23 +215,17 @@ export default function NewOrderDialog({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-muted/50 border-b border-border">
-                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5 w-8">
-                      #
+                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5 w-10">
+                      Done
                     </th>
                     <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
                       Product
                     </th>
                     <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
-                      Design Ref
-                    </th>
-                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
-                      Color
-                    </th>
-                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
                       Size
                     </th>
-                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5 w-14">
-                      Qty
+                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5 w-16">
+                      Quantity
                     </th>
                     <th className="w-6" />
                   </tr>
@@ -240,8 +238,13 @@ export default function NewOrderDialog({
                       className="border-b border-border last:border-0 group hover:bg-muted/20 transition-colors"
                       data-ocid={`order.item.${idx + 1}`}
                     >
-                      <td className="px-2 py-0.5 text-[11px] text-muted-foreground">
-                        {idx + 1}
+                      <td className="px-2 py-0.5 text-center">
+                        <Checkbox
+                          checked={item.done}
+                          onCheckedChange={(c) => updateItem(idx, "done", !!c)}
+                          className="rounded"
+                          data-ocid={`order.checkbox.${idx + 1}`}
+                        />
                       </td>
                       <td className="px-1 py-0.5">
                         <Input
@@ -251,28 +254,6 @@ export default function NewOrderDialog({
                           }
                           className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
                           placeholder="Product name"
-                          data-ocid="order.input"
-                        />
-                      </td>
-                      <td className="px-1 py-0.5">
-                        <Input
-                          value={item.designRef}
-                          onChange={(e) =>
-                            updateItem(idx, "designRef", e.target.value)
-                          }
-                          className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
-                          placeholder="Ref"
-                          data-ocid="order.input"
-                        />
-                      </td>
-                      <td className="px-1 py-0.5">
-                        <Input
-                          value={item.color}
-                          onChange={(e) =>
-                            updateItem(idx, "color", e.target.value)
-                          }
-                          className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
-                          placeholder="Color"
                           data-ocid="order.input"
                         />
                       </td>
@@ -347,7 +328,7 @@ export default function NewOrderDialog({
               {createOrder.isPending ? (
                 <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
               ) : null}
-              {createOrder.isPending ? "Creating…" : "Create Order"}
+              {createOrder.isPending ? "Creating\u2026" : "Create Order"}
             </Button>
           </div>
         </form>

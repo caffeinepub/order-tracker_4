@@ -135,27 +135,31 @@ function dateStringToBigint(s: string): bigint {
 
 interface ProductItem {
   product: string;
-  designRef: string;
-  color: string;
   size: string;
   qty: string;
+  done: boolean;
 }
 
 function emptyItem(): ProductItem {
-  return { product: "", designRef: "", color: "", size: "", qty: "" };
+  return { product: "", size: "", qty: "", done: false };
 }
 
 function parseItems(productType: string): ProductItem[] {
   try {
     const parsed = JSON.parse(productType);
-    if (Array.isArray(parsed)) return parsed as ProductItem[];
+    if (Array.isArray(parsed)) {
+      return parsed.map((row: any) => ({
+        product: row.product ?? "",
+        size: row.size ?? "",
+        qty: row.qty ?? "",
+        done: row.done ?? false,
+      }));
+    }
   } catch {
     // not JSON
   }
   if (productType) {
-    return [
-      { product: productType, designRef: "", color: "", size: "", qty: "" },
-    ];
+    return [{ product: productType, size: "", qty: "", done: false }];
   }
   return [emptyItem()];
 }
@@ -197,7 +201,11 @@ export default function OrderView({
     setChecklist(order.confirmationChecklist);
   }, [orderId]);
 
-  const updateItem = (idx: number, field: keyof ProductItem, value: string) => {
+  const updateItem = (
+    idx: number,
+    field: keyof ProductItem,
+    value: string | boolean,
+  ) => {
     setItems((prev) =>
       prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)),
     );
@@ -208,10 +216,13 @@ export default function OrderView({
   const removeItem = (idx: number) =>
     setItems((prev) => prev.filter((_, i) => i !== idx));
 
-  const buildInput = (cl: ConfirmationChecklist) => ({
+  const buildInput = (
+    cl: ConfirmationChecklist,
+    currentItems: ProductItem[],
+  ) => ({
     orderNumber: form.orderNumber,
     clientName: form.clientName,
-    productType: JSON.stringify(items),
+    productType: JSON.stringify(currentItems),
     color: "",
     size: { length: 0, width: 0, height: 0 },
     quantity: 0n,
@@ -223,9 +234,20 @@ export default function OrderView({
   const handleSave = async () => {
     await updateOrder.mutateAsync({
       id: order.id,
-      input: buildInput(checklist),
+      input: buildInput(checklist, items),
     });
     toast.success("Order saved");
+  };
+
+  const handleDoneToggle = async (idx: number, checked: boolean) => {
+    const newItems = items.map((item, i) =>
+      i === idx ? { ...item, done: checked } : item,
+    );
+    setItems(newItems);
+    await updateOrder.mutateAsync({
+      id: order.id,
+      input: buildInput(checklist, newItems),
+    });
   };
 
   const handleCheckboxChange = async (
@@ -243,7 +265,7 @@ export default function OrderView({
     setChecklist(newChecklist);
     await updateOrder.mutateAsync({
       id: order.id,
-      input: buildInput(newChecklist),
+      input: buildInput(newChecklist, items),
     });
   };
 
@@ -359,23 +381,17 @@ export default function OrderView({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-indigo-50">
-                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2.5 py-2 w-7 uppercase tracking-wider">
-                    #
+                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2.5 py-2 w-10 uppercase tracking-wider">
+                    Done
                   </th>
                   <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
                     Product
                   </th>
                   <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
-                    Ref
-                  </th>
-                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
-                    Color
-                  </th>
-                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
                     Size
                   </th>
-                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 w-12 uppercase tracking-wider">
-                    Qty
+                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 w-16 uppercase tracking-wider">
+                    Quantity
                   </th>
                   <th className="w-7" />
                 </tr>
@@ -385,11 +401,19 @@ export default function OrderView({
                   <tr
                     // biome-ignore lint/suspicious/noArrayIndexKey: items have no stable id
                     key={idx}
-                    className="border-b border-border/60 last:border-0 group hover:bg-muted/30 transition-colors"
+                    className={cn(
+                      "border-b border-border/60 last:border-0 group hover:bg-muted/30 transition-colors",
+                      item.done && "bg-muted/20",
+                    )}
                     data-ocid={`order.item.${idx + 1}`}
                   >
-                    <td className="px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
-                      {idx + 1}
+                    <td className="px-2.5 py-1 text-center">
+                      <Checkbox
+                        checked={item.done}
+                        onCheckedChange={(c) => handleDoneToggle(idx, !!c)}
+                        className="rounded data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        data-ocid={`order.checkbox.${idx + 1}`}
+                      />
                     </td>
                     <td className="px-1 py-0.5">
                       <Input
@@ -397,30 +421,11 @@ export default function OrderView({
                         onChange={(e) =>
                           updateItem(idx, "product", e.target.value)
                         }
-                        className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        className={cn(
+                          "h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent",
+                          item.done && "line-through text-muted-foreground",
+                        )}
                         placeholder="Product name"
-                        data-ocid="order.input"
-                      />
-                    </td>
-                    <td className="px-1 py-0.5">
-                      <Input
-                        value={item.designRef}
-                        onChange={(e) =>
-                          updateItem(idx, "designRef", e.target.value)
-                        }
-                        className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
-                        placeholder="Ref"
-                        data-ocid="order.input"
-                      />
-                    </td>
-                    <td className="px-1 py-0.5">
-                      <Input
-                        value={item.color}
-                        onChange={(e) =>
-                          updateItem(idx, "color", e.target.value)
-                        }
-                        className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
-                        placeholder="Color"
                         data-ocid="order.input"
                       />
                     </td>
@@ -430,7 +435,10 @@ export default function OrderView({
                         onChange={(e) =>
                           updateItem(idx, "size", e.target.value)
                         }
-                        className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        className={cn(
+                          "h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent",
+                          item.done && "line-through text-muted-foreground",
+                        )}
                         placeholder="Size"
                         data-ocid="order.input"
                       />
@@ -439,7 +447,10 @@ export default function OrderView({
                       <Input
                         value={item.qty}
                         onChange={(e) => updateItem(idx, "qty", e.target.value)}
-                        className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        className={cn(
+                          "h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent",
+                          item.done && "line-through text-muted-foreground",
+                        )}
                         placeholder="0"
                         data-ocid="order.input"
                       />

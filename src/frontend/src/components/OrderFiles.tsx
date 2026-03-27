@@ -30,8 +30,6 @@ export default function OrderFiles({ orderId }: { orderId: bigint }) {
   const getStorageClient = useCallback(async (): Promise<StorageClient> => {
     if (storageClientRef.current) return storageClientRef.current;
     const config = await loadConfig();
-    // Use createSync (same as backend.ts) so the agent is properly initialized
-    // for IC mainnet and can receive v3 responses needed for upload certificates.
     const isLocal = config.backend_host?.includes("localhost");
     const agent = HttpAgent.createSync({
       host: isLocal ? config.backend_host : undefined,
@@ -204,7 +202,7 @@ export default function OrderFiles({ orderId }: { orderId: bigint }) {
 
       {/* Uploaded files grid */}
       {resolvedFiles.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {resolvedFiles.map((f, idx) => (
             <div
               key={f.hash}
@@ -223,10 +221,10 @@ export default function OrderFiles({ orderId }: { orderId: bigint }) {
                 <img
                   src={f.url}
                   alt={f.name}
-                  className="w-full h-[72px] object-cover"
+                  className="w-full aspect-video object-cover"
                 />
               ) : (
-                <div className="w-full h-[72px] flex flex-col items-center justify-center bg-muted/50 gap-1 px-2">
+                <div className="w-full aspect-video flex flex-col items-center justify-center bg-muted/50 gap-1 px-2">
                   <FileText className="w-5 h-5 text-muted-foreground" />
                   <p className="text-[10px] text-muted-foreground text-center truncate w-full">
                     {f.name}

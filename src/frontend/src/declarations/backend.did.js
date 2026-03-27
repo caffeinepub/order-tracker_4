@@ -8,6 +8,17 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const _CaffeineStorageCreateCertificateResult = IDL.Record({
+  'method' : IDL.Text,
+  'blob_hash' : IDL.Text,
+});
+export const _CaffeineStorageRefillInformation = IDL.Record({
+  'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+});
+export const _CaffeineStorageRefillResult = IDL.Record({
+  'success' : IDL.Opt(IDL.Bool),
+  'topped_up_amount' : IDL.Opt(IDL.Nat),
+});
 export const Dispatch = IDL.Record({
   'transportBooked' : IDL.Bool,
   'dispatchDateConfirmed' : IDL.Bool,
@@ -77,23 +88,69 @@ export const OrderData = IDL.Record({
   'orderNumber' : IDL.Text,
   'overallStatus' : OverallStatus,
 });
+export const OrderFileEntry = IDL.Record({
+  'hash' : IDL.Text,
+  'name' : IDL.Text,
+  'mimeType' : IDL.Text,
+  'uploadedAt' : IDL.Int,
+});
 
 export const idlService = IDL.Service({
+  '_caffeineStorageBlobIsLive' : IDL.Func(
+      [IDL.Vec(IDL.Nat8)],
+      [IDL.Bool],
+      ['query'],
+    ),
+  '_caffeineStorageBlobsToDelete' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      ['query'],
+    ),
+  '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [],
+      [],
+    ),
+  '_caffeineStorageCreateCertificate' : IDL.Func(
+      [IDL.Text],
+      [_CaffeineStorageCreateCertificateResult],
+      [],
+    ),
+  '_caffeineStorageRefillCashier' : IDL.Func(
+      [IDL.Opt(_CaffeineStorageRefillInformation)],
+      [_CaffeineStorageRefillResult],
+      [],
+    ),
+  '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
+  'addOrderFile' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text, IDL.Text], [], []),
   'createOrder' : IDL.Func([OrderInput], [IDL.Nat], []),
   'deleteOrder' : IDL.Func([IDL.Nat], [], []),
   'getAllOrders' : IDL.Func([], [IDL.Vec(OrderData)], ['query']),
   'getOrder' : IDL.Func([IDL.Nat], [OrderData], ['query']),
+  'getOrderFiles' : IDL.Func([IDL.Nat], [IDL.Vec(OrderFileEntry)], ['query']),
   'getOrdersByClientName' : IDL.Func(
       [IDL.Text],
       [IDL.Vec(OrderData)],
       ['query'],
     ),
+  'removeOrderFile' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'updateOrder' : IDL.Func([IDL.Nat, OrderInput], [], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const _CaffeineStorageCreateCertificateResult = IDL.Record({
+    'method' : IDL.Text,
+    'blob_hash' : IDL.Text,
+  });
+  const _CaffeineStorageRefillInformation = IDL.Record({
+    'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const _CaffeineStorageRefillResult = IDL.Record({
+    'success' : IDL.Opt(IDL.Bool),
+    'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
   const Dispatch = IDL.Record({
     'transportBooked' : IDL.Bool,
     'dispatchDateConfirmed' : IDL.Bool,
@@ -163,17 +220,52 @@ export const idlFactory = ({ IDL }) => {
     'orderNumber' : IDL.Text,
     'overallStatus' : OverallStatus,
   });
+  const OrderFileEntry = IDL.Record({
+    'hash' : IDL.Text,
+    'name' : IDL.Text,
+    'mimeType' : IDL.Text,
+    'uploadedAt' : IDL.Int,
+  });
   
   return IDL.Service({
+    '_caffeineStorageBlobIsLive' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [IDL.Bool],
+        ['query'],
+      ),
+    '_caffeineStorageBlobsToDelete' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
+    '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [],
+        [],
+      ),
+    '_caffeineStorageCreateCertificate' : IDL.Func(
+        [IDL.Text],
+        [_CaffeineStorageCreateCertificateResult],
+        [],
+      ),
+    '_caffeineStorageRefillCashier' : IDL.Func(
+        [IDL.Opt(_CaffeineStorageRefillInformation)],
+        [_CaffeineStorageRefillResult],
+        [],
+      ),
+    '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
+    'addOrderFile' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text, IDL.Text], [], []),
     'createOrder' : IDL.Func([OrderInput], [IDL.Nat], []),
     'deleteOrder' : IDL.Func([IDL.Nat], [], []),
     'getAllOrders' : IDL.Func([], [IDL.Vec(OrderData)], ['query']),
     'getOrder' : IDL.Func([IDL.Nat], [OrderData], ['query']),
+    'getOrderFiles' : IDL.Func([IDL.Nat], [IDL.Vec(OrderFileEntry)], ['query']),
     'getOrdersByClientName' : IDL.Func(
         [IDL.Text],
         [IDL.Vec(OrderData)],
         ['query'],
       ),
+    'removeOrderFile' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'updateOrder' : IDL.Func([IDL.Nat, OrderInput], [], []),
   });
 };

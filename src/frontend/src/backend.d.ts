@@ -7,30 +7,11 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export interface PreProduction {
-    sampleApproved: boolean;
-    colorReferenceConfirmed: boolean;
-    materialConfirmedAvailable: boolean;
-    timelineCommitted: boolean;
-    sizeConfirmed: boolean;
-}
-export interface ConfirmationChecklist {
-    dispatch: Dispatch;
-    production: Production;
-    preProduction: PreProduction;
-    packaging: Packaging;
-}
 export type Time = bigint;
 export interface Size {
     height: number;
     length: number;
     width: number;
-}
-export interface Production {
-    designFileCAD: boolean;
-    colorMatchedWithSample: boolean;
-    sizeVerifiedDuringProduction: boolean;
-    yarnDyingProcess: boolean;
 }
 export interface OrderInput {
     confirmationChecklist: ConfirmationChecklist;
@@ -49,11 +30,11 @@ export interface Packaging {
     photosTaken: boolean;
     correctPackagingTypeUsed: boolean;
 }
-export interface Dispatch {
-    transportBooked: boolean;
-    dispatchDateConfirmed: boolean;
-    trackingShared: boolean;
-    clientInformed: boolean;
+export interface OrderFileEntry {
+    hash: string;
+    name: string;
+    mimeType: string;
+    uploadedAt: bigint;
 }
 export interface OrderData {
     id: bigint;
@@ -69,6 +50,31 @@ export interface OrderData {
     orderNumber: string;
     overallStatus: OverallStatus;
 }
+export interface PreProduction {
+    sampleApproved: boolean;
+    colorReferenceConfirmed: boolean;
+    materialConfirmedAvailable: boolean;
+    timelineCommitted: boolean;
+    sizeConfirmed: boolean;
+}
+export interface ConfirmationChecklist {
+    dispatch: Dispatch;
+    production: Production;
+    preProduction: PreProduction;
+    packaging: Packaging;
+}
+export interface Production {
+    designFileCAD: boolean;
+    colorMatchedWithSample: boolean;
+    sizeVerifiedDuringProduction: boolean;
+    yarnDyingProcess: boolean;
+}
+export interface Dispatch {
+    transportBooked: boolean;
+    dispatchDateConfirmed: boolean;
+    trackingShared: boolean;
+    clientInformed: boolean;
+}
 export enum OverallStatus {
     completed = "completed",
     dispatched = "dispatched",
@@ -77,10 +83,13 @@ export enum OverallStatus {
     packaging = "packaging"
 }
 export interface backendInterface {
+    addOrderFile(orderId: bigint, hash: string, name: string, mimeType: string): Promise<void>;
     createOrder(input: OrderInput): Promise<bigint>;
     deleteOrder(id: bigint): Promise<void>;
     getAllOrders(): Promise<Array<OrderData>>;
     getOrder(id: bigint): Promise<OrderData>;
+    getOrderFiles(orderId: bigint): Promise<Array<OrderFileEntry>>;
     getOrdersByClientName(clientName: string): Promise<Array<OrderData>>;
+    removeOrderFile(orderId: bigint, hash: string): Promise<void>;
     updateOrder(id: bigint, input: OrderInput): Promise<void>;
 }

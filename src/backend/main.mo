@@ -9,10 +9,14 @@ import Time "mo:core/Time";
 import Float "mo:core/Float";
 import Int "mo:core/Int";
 import Principal "mo:core/Principal";
-import Prim "mo:prim";
+
 import Storage "blob-storage/Storage";
+import MixinStorage "blob-storage/Mixin";
+
 
 actor {
+  include MixinStorage();
+
   func boolToNat(b : Bool) : Nat {
     if (b) { 1 } else { 0 };
   };
@@ -302,9 +306,18 @@ actor {
     confirmationChecklist : ConfirmationChecklist;
   };
 
+  type OrderFileEntry = {
+    hash : Text;
+    name : Text;
+    mimeType : Text;
+    uploadedAt : Int;
+  };
+
   var nextId = 0;
 
   let orders = Map.empty<Nat, OrderData>();
+
+  let orderFiles = Map.empty<Nat, [OrderFileEntry]>();
 
   func getOrderInternal(id : Nat) : OrderData {
     switch (orders.get(id)) {
@@ -336,7 +349,7 @@ actor {
   };
 
   public shared ({ caller }) func updateOrder(id : Nat, input : OrderInput) : async () {
-    ignore getOrderInternal(id);
+    ignore getOrderInternal(id); // ensure order exists, trap if not
     let updatedOrder : OrderData = {
       id;
       orderNumber = input.orderNumber;
@@ -355,12 +368,12 @@ actor {
   };
 
   public shared ({ caller }) func deleteOrder(id : Nat) : async () {
-    ignore getOrderInternal(id);
+    ignore getOrderInternal(id); // ensure order exists, trap if not
     orders.remove(id);
   };
 
   public query ({ caller }) func getOrder(id : Nat) : async OrderData {
-    getOrderInternal(id);
+    getOrderInternal(id); // ensures trap if not found
   };
 
   public query ({ caller }) func getAllOrders() : async [OrderData] {
@@ -371,52 +384,46 @@ actor {
     orders.values().filter(func(order) { order.clientName == clientName }).toArray();
   };
 
-  // ── Blob Storage ──────────────────────────────────────────────────────────
+  // ── Files ──────────────────────────────────────────────────────────
 
-  transient let _caffeineStorageState : Storage.State = Storage.new();
-
-  public shared ({ caller }) func _caffeineStorageRefillCashier(
-    refillInformation : ?{ proposed_top_up_amount : ?Nat }
-  ) : async { success : ?Bool; topped_up_amount : ?Nat } {
-    let cashier = await Storage.getCashierPrincipal();
-    if (cashier != caller) {
-      Runtime.trap("Unauthorized access");
+  public shared ({ caller }) func addOrderFile(orderId : Nat, hash : Text, name : Text, mimeType : Text) : async () {
+    let files = orderFiles.get(orderId);
+    switch (files) {
+      case (null) {
+        orderFiles.add(orderId, [{
+          hash;
+          name;
+          mimeType;
+          uploadedAt = Time.now();
+        }]);
+      };
+      case (?files) {
+        orderFiles.add(
+          orderId,
+          files.concat([{
+            hash;
+            name;
+            mimeType;
+            uploadedAt = Time.now();
+          }]),
+        );
+      };
     };
-    await Storage.refillCashier(_caffeineStorageState, cashier, refillInformation);
   };
 
-  public shared ({ caller }) func _caffeineStorageUpdateGatewayPrincipals() : async () {
-    await Storage.updateGatewayPrincipals(_caffeineStorageState);
-  };
-
-  public query ({ caller }) func _caffeineStorageBlobIsLive(hash : Blob) : async Bool {
-    Prim.isStorageBlobLive(hash);
-  };
-
-  public query ({ caller }) func _caffeineStorageBlobsToDelete() : async [Blob] {
-    if (not Storage.isAuthorized(_caffeineStorageState, caller)) {
-      Runtime.trap("Unauthorized access");
+  public shared ({ caller }) func removeOrderFile(orderId : Nat, hash : Text) : async () {
+    let existingFiles = switch (orderFiles.get(orderId)) {
+      case (null) { Runtime.trap("Order files for id " # orderId.toText() # " do not exist") };
+      case (?files) { files };
     };
-    let deadBlobs = Prim.getDeadBlobs();
-    switch (deadBlobs) {
+    let filteredFiles = existingFiles.filter(func(file) { file.hash != hash });
+    orderFiles.add(orderId, filteredFiles);
+  };
+
+  public query ({ caller }) func getOrderFiles(orderId : Nat) : async [OrderFileEntry] {
+    switch (orderFiles.get(orderId)) {
       case (null) { [] };
-      case (?deadBlobs) { deadBlobs.sliceToArray(0, 10000) };
+      case (?files) { files };
     };
-  };
-
-  public shared ({ caller }) func _caffeineStorageConfirmBlobDeletion(blobs : [Blob]) : async () {
-    if (not Storage.isAuthorized(_caffeineStorageState, caller)) {
-      Runtime.trap("Unauthorized access");
-    };
-    Prim.pruneConfirmedDeadBlobs(blobs);
-    type GC = actor {
-      __motoko_gc_trigger : () -> async ();
-    };
-    let myGC = actor (debug_show (Prim.getSelfPrincipal<system>())) : GC;
-    await myGC.__motoko_gc_trigger();
-  };
-
-  public shared ({ caller }) func _caffeineStorageCreateCertificate(blobHash : Text) : async { method : Text; blob_hash : Text } {
-    { method = "upload"; blob_hash = blobHash };
   };
 };
