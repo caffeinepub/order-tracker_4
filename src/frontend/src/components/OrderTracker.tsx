@@ -25,11 +25,13 @@ export default function OrderTracker() {
       <header className="border-b border-primary/30 bg-primary sticky top-0 z-10 shadow-md">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
-              <Package className="w-3.5 h-3.5 text-white" />
-            </div>
+            <img
+              src="/assets/uploads/mr_icon-019d2d81-60fb-77ca-bf86-899efd8405f3-1.png"
+              alt="MR Logo"
+              className="h-8 w-8 object-contain"
+            />
             <span className="text-[15px] font-bold text-white tracking-tight">
-              Order Tracker
+              MR Progress Platform
             </span>
           </div>
           <Button
