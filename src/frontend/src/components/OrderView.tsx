@@ -133,6 +133,14 @@ function dateStringToBigint(s: string): bigint {
   return BigInt(new Date(s).getTime()) * 1_000_000n;
 }
 
+function formatCheckDate(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const day = d.getDate();
+  const month = d.toLocaleString("en", { month: "short" });
+  return `${day} ${month}`;
+}
+
 interface ProductItem {
   product: string;
   size: string;
@@ -263,6 +271,12 @@ export default function OrderView({
       },
     } as ConfirmationChecklist;
     setChecklist(newChecklist);
+    const storageKey = `checklist-date-${orderId.toString()}-${stage}-${key}`;
+    if (checked) {
+      localStorage.setItem(storageKey, new Date().toISOString());
+    } else {
+      localStorage.removeItem(storageKey);
+    }
     await updateOrder.mutateAsync({
       id: order.id,
       input: buildInput(newChecklist, items),
@@ -403,10 +417,10 @@ export default function OrderView({
                   <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
                     Product
                   </th>
-                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
+                  <th className="text-center text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
                     Size
                   </th>
-                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 w-16 uppercase tracking-wider">
+                  <th className="text-center text-[10px] font-bold text-indigo-700 px-2 py-2 w-16 uppercase tracking-wider">
                     Quantity
                   </th>
                   <th className="w-7" />
@@ -452,7 +466,7 @@ export default function OrderView({
                           updateItem(idx, "size", e.target.value)
                         }
                         className={cn(
-                          "h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent",
+                          "h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent text-center",
                           item.done && "line-through text-muted-foreground",
                         )}
                         placeholder="Size"
@@ -464,7 +478,7 @@ export default function OrderView({
                         value={item.qty}
                         onChange={(e) => updateItem(idx, "qty", e.target.value)}
                         className={cn(
-                          "h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent",
+                          "h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent text-center",
                           item.done && "line-through text-muted-foreground",
                         )}
                         placeholder="0"
@@ -592,34 +606,52 @@ export default function OrderView({
                   </span>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  {stage.items.map((item, idx) => (
-                    <div
-                      key={item.key}
-                      className="flex items-center gap-2.5 group py-0.5"
-                      data-ocid={`checklist.item.${idx + 1}`}
-                    >
-                      <Checkbox
-                        id={`${stage.key}-${item.key}`}
-                        checked={!!stageData[item.key]}
-                        onCheckedChange={(c) =>
-                          handleCheckboxChange(stage.key, item.key, !!c)
-                        }
-                        className="rounded data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                        data-ocid={`checklist.checkbox.${idx + 1}`}
-                      />
-                      <Label
-                        htmlFor={`${stage.key}-${item.key}`}
-                        className={cn(
-                          "text-sm font-medium transition-colors cursor-pointer select-none",
-                          stageData[item.key]
-                            ? "text-muted-foreground line-through decoration-muted-foreground/40"
-                            : "text-foreground group-hover:text-primary",
-                        )}
+                  {stage.items.map((item, idx) => {
+                    const isChecked = !!stageData[item.key];
+                    const dateStr = isChecked
+                      ? formatCheckDate(
+                          localStorage.getItem(
+                            `checklist-date-${orderId.toString()}-${stage.key}-${item.key}`,
+                          ),
+                        )
+                      : "";
+                    return (
+                      <div
+                        key={item.key}
+                        className="flex items-center gap-2.5 group py-0.5"
+                        data-ocid={`checklist.item.${idx + 1}`}
                       >
-                        {item.label}
-                      </Label>
-                    </div>
-                  ))}
+                        <Checkbox
+                          id={`${stage.key}-${item.key}`}
+                          checked={isChecked}
+                          onCheckedChange={(c) =>
+                            handleCheckboxChange(stage.key, item.key, !!c)
+                          }
+                          className="rounded data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                          data-ocid={`checklist.checkbox.${idx + 1}`}
+                        />
+                        <Label
+                          htmlFor={`${stage.key}-${item.key}`}
+                          className={cn(
+                            "text-sm font-medium transition-colors cursor-pointer select-none flex items-baseline gap-1",
+                            isChecked
+                              ? "text-muted-foreground line-through decoration-muted-foreground/40"
+                              : "text-foreground group-hover:text-primary",
+                          )}
+                        >
+                          {dateStr && (
+                            <span
+                              className="text-[10px] font-medium text-muted-foreground/55 tabular-nums no-underline"
+                              style={{ textDecoration: "none" }}
+                            >
+                              {dateStr}
+                            </span>
+                          )}
+                          {item.label}
+                        </Label>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
