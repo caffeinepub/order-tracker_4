@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Link, Loader2, Plus, Trash2, X } from "lucide-react";
+import { Link, Loader2, Plus, Trash2, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { ConfirmationChecklist, OrderData } from "../backend";
@@ -281,6 +281,12 @@ export default function OrderView({
     toast.success("Link copied to clipboard");
   };
 
+  const handleVendorLink = async () => {
+    const url = `${window.location.origin}${window.location.pathname}?vendor=${order.id.toString()}`;
+    await navigator.clipboard.writeText(url);
+    toast.success("Vendor link copied");
+  };
+
   return (
     <div className="grid grid-cols-1 gap-4">
       {/* Order Details Panel */}
@@ -315,6 +321,16 @@ export default function OrderView({
             >
               <Link className="w-3.5 h-3.5" />
               Share
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1.5 px-2 font-semibold text-violet-600 hover:text-violet-800 hover:bg-violet-50"
+              onClick={handleVendorLink}
+              data-ocid="order.button"
+            >
+              <Users className="w-3.5 h-3.5" />
+              Vendor Link
             </Button>
           </div>
         </div>

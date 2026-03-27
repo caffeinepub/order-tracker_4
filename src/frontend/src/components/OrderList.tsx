@@ -36,7 +36,7 @@ const statusLabel: Record<OverallStatus, string> = {
 
 export default function OrderList({ orders, selectedId, onSelect }: Props) {
   return (
-    <div className="flex gap-2 flex-wrap" data-ocid="orders.list">
+    <div className="flex gap-3 flex-wrap" data-ocid="orders.list">
       {orders.map((order, i) => (
         <button
           type="button"
@@ -44,46 +44,44 @@ export default function OrderList({ orders, selectedId, onSelect }: Props) {
           onClick={() => onSelect(order.id)}
           data-ocid={`orders.item.${i + 1}`}
           className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all duration-150",
+            "flex flex-col items-start gap-1.5 px-4 py-3 rounded-xl border text-left transition-all duration-150 min-w-[140px]",
             selectedId === order.id
-              ? "border-primary bg-primary text-primary-foreground shadow-sm"
-              : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-accent/60 hover:shadow-xs",
+              ? "border-primary bg-primary/10 shadow-md ring-1 ring-primary/30"
+              : "border-border bg-card hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5",
           )}
         >
-          <span className="font-bold tracking-tight">{order.orderNumber}</span>
           <span
             className={cn(
-              selectedId === order.id
-                ? "text-white/60"
-                : "text-muted-foreground/60",
+              "text-sm font-extrabold tracking-tight leading-none",
+              selectedId === order.id ? "text-primary" : "text-foreground",
             )}
           >
-            ·
+            {order.orderNumber}
           </span>
           <span
             className={cn(
-              "font-medium truncate max-w-28",
-              selectedId === order.id ? "text-white/80" : "text-foreground/70",
+              "text-xs font-medium truncate max-w-36 leading-none",
+              selectedId === order.id
+                ? "text-primary/70"
+                : "text-muted-foreground",
             )}
           >
             {order.clientName}
           </span>
-          {selectedId !== order.id && (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-1 mt-0.5",
+              statusColor[order.overallStatus],
+            )}
+          >
             <span
               className={cn(
-                "inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-1",
-                statusColor[order.overallStatus],
+                "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                statusDot[order.overallStatus],
               )}
-            >
-              <span
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  statusDot[order.overallStatus],
-                )}
-              />
-              {statusLabel[order.overallStatus]}
-            </span>
-          )}
+            />
+            {statusLabel[order.overallStatus]}
+          </span>
         </button>
       ))}
     </div>

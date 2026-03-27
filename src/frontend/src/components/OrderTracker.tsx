@@ -31,7 +31,7 @@ export default function OrderTracker() {
               className="h-8 w-8 object-contain"
             />
             <span className="text-[15px] font-bold text-white tracking-tight">
-              MR Progress Platform
+              MR Orders Dashboard
             </span>
           </div>
           <Button
