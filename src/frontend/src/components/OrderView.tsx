@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { Link, Loader2, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { ConfirmationChecklist, OrderData } from "../backend";
@@ -39,11 +39,22 @@ const statusLabel: Record<OverallStatus, string> = {
 
 const statusPillClass: Record<OverallStatus, string> = {
   [OverallStatus.waitingForApproval]:
-    "bg-amber-100 text-amber-700 border-amber-200",
-  [OverallStatus.inProduction]: "bg-blue-100 text-blue-700 border-blue-200",
-  [OverallStatus.packaging]: "bg-purple-100 text-purple-700 border-purple-200",
-  [OverallStatus.dispatched]: "bg-orange-100 text-orange-700 border-orange-200",
-  [OverallStatus.completed]: "bg-green-100 text-green-700 border-green-200",
+    "bg-amber-100 text-amber-700 ring-1 ring-amber-300/60",
+  [OverallStatus.inProduction]:
+    "bg-blue-100 text-blue-700 ring-1 ring-blue-300/60",
+  [OverallStatus.packaging]:
+    "bg-violet-100 text-violet-700 ring-1 ring-violet-300/60",
+  [OverallStatus.dispatched]:
+    "bg-orange-100 text-orange-700 ring-1 ring-orange-300/60",
+  [OverallStatus.completed]:
+    "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300/60",
+};
+
+const stageBadgeClass: Record<string, string> = {
+  preProduction: "bg-amber-100 text-amber-800 border border-amber-300",
+  production: "bg-blue-100 text-blue-800 border border-blue-300",
+  packaging: "bg-violet-100 text-violet-800 border border-violet-300",
+  dispatch: "bg-orange-100 text-orange-800 border border-orange-300",
 };
 
 type ChecklistStage = {
@@ -55,7 +66,7 @@ type ChecklistStage = {
 const STAGES: ChecklistStage[] = [
   {
     key: "preProduction",
-    label: "PRE-PRODUCTION",
+    label: "Pre-Production",
     items: [
       { key: "sizeConfirmed", label: "Size confirmed" },
       { key: "colorReferenceConfirmed", label: "Color reference confirmed" },
@@ -69,7 +80,7 @@ const STAGES: ChecklistStage[] = [
   },
   {
     key: "production",
-    label: "PRODUCTION",
+    label: "Production",
     items: [
       { key: "designFileCAD", label: "Design file / CAD ready" },
       { key: "yarnDyingProcess", label: "Yarn dying process done" },
@@ -82,7 +93,7 @@ const STAGES: ChecklistStage[] = [
   },
   {
     key: "packaging",
-    label: "PACKAGING",
+    label: "Packaging",
     items: [
       { key: "correctPackagingTypeUsed", label: "Correct packaging type used" },
       { key: "labelsCorrect", label: "Labels correct" },
@@ -92,7 +103,7 @@ const STAGES: ChecklistStage[] = [
   },
   {
     key: "dispatch",
-    label: "DISPATCH",
+    label: "Dispatch",
     items: [
       { key: "transportBooked", label: "Transport booked" },
       { key: "dispatchDateConfirmed", label: "Dispatch date confirmed" },
@@ -242,39 +253,58 @@ export default function OrderView({
     onDeleted();
   };
 
+  const handleShare = async () => {
+    const url = `${window.location.origin}${window.location.pathname}?order=${order.id.toString()}`;
+    await navigator.clipboard.writeText(url);
+    toast.success("Link copied to clipboard");
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-      {/* Left: Order Details */}
+    <div className="grid grid-cols-1 gap-4">
+      {/* Order Details Panel */}
       <div
-        className="bg-card border border-border rounded-xl shadow-card p-6 flex flex-col gap-5"
+        className="bg-card border border-border border-l-4 border-l-primary rounded-xl shadow-sm p-5 flex flex-col gap-5"
         data-ocid="order.panel"
       >
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-base font-semibold text-foreground">
+            <h2 className="text-sm font-bold text-foreground tracking-tight">
               Order Details
             </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
               {order.orderNumber} · {order.clientName}
             </p>
           </div>
-          <span
-            className={cn(
-              "text-xs font-medium px-2.5 py-1 rounded-full border",
-              statusPillClass[order.overallStatus],
-            )}
-          >
-            {statusLabel[order.overallStatus]}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "text-[11px] font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5",
+                statusPillClass[order.overallStatus],
+              )}
+            >
+              {statusLabel[order.overallStatus]}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1.5 px-2 font-semibold text-muted-foreground hover:text-foreground"
+              onClick={handleShare}
+              data-ocid="order.secondary_button"
+            >
+              <Link className="w-3.5 h-3.5" />
+              Share
+            </Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Order Number">
             <Input
               value={form.orderNumber}
               onChange={(e) =>
                 setForm((p) => ({ ...p, orderNumber: e.target.value }))
               }
+              className="h-9 text-sm"
               data-ocid="order.input"
             />
           </Field>
@@ -284,6 +314,7 @@ export default function OrderView({
               onChange={(e) =>
                 setForm((p) => ({ ...p, clientName: e.target.value }))
               }
+              className="h-9 text-sm"
               data-ocid="order.input"
             />
           </Field>
@@ -294,6 +325,7 @@ export default function OrderView({
               onChange={(e) =>
                 setForm((p) => ({ ...p, dispatchDate: e.target.value }))
               }
+              className="h-9 text-sm"
               data-ocid="order.input"
             />
           </Field>
@@ -304,7 +336,7 @@ export default function OrderView({
                 setForm((p) => ({ ...p, overallStatus: v as OverallStatus }))
               }
             >
-              <SelectTrigger data-ocid="order.select">
+              <SelectTrigger className="h-9 text-sm" data-ocid="order.select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -320,32 +352,32 @@ export default function OrderView({
 
         {/* Product Items Table */}
         <div>
-          <Label className="text-xs font-medium text-muted-foreground mb-2 block">
+          <Label className="text-xs font-bold text-foreground mb-2 block">
             Products
           </Label>
           <div className="border border-border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-muted/50 border-b border-border">
-                  <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5 w-8">
+                <tr className="border-b border-border bg-indigo-50">
+                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2.5 py-2 w-7 uppercase tracking-wider">
                     #
                   </th>
-                  <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
+                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
                     Product
                   </th>
-                  <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
-                    Design Ref
+                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
+                    Ref
                   </th>
-                  <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
+                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
                     Color
                   </th>
-                  <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
+                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
                     Size
                   </th>
-                  <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5 w-14">
+                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 w-12 uppercase tracking-wider">
                     Qty
                   </th>
-                  <th className="w-6" />
+                  <th className="w-7" />
                 </tr>
               </thead>
               <tbody>
@@ -353,10 +385,10 @@ export default function OrderView({
                   <tr
                     // biome-ignore lint/suspicious/noArrayIndexKey: items have no stable id
                     key={idx}
-                    className="border-b border-border last:border-0 group hover:bg-muted/20 transition-colors"
+                    className="border-b border-border/60 last:border-0 group hover:bg-muted/30 transition-colors"
                     data-ocid={`order.item.${idx + 1}`}
                   >
-                    <td className="px-2 py-0.5 text-[11px] text-muted-foreground">
+                    <td className="px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
                       {idx + 1}
                     </td>
                     <td className="px-1 py-0.5">
@@ -365,7 +397,7 @@ export default function OrderView({
                         onChange={(e) =>
                           updateItem(idx, "product", e.target.value)
                         }
-                        className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
                         placeholder="Product name"
                         data-ocid="order.input"
                       />
@@ -376,7 +408,7 @@ export default function OrderView({
                         onChange={(e) =>
                           updateItem(idx, "designRef", e.target.value)
                         }
-                        className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
                         placeholder="Ref"
                         data-ocid="order.input"
                       />
@@ -387,7 +419,7 @@ export default function OrderView({
                         onChange={(e) =>
                           updateItem(idx, "color", e.target.value)
                         }
-                        className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
                         placeholder="Color"
                         data-ocid="order.input"
                       />
@@ -398,7 +430,7 @@ export default function OrderView({
                         onChange={(e) =>
                           updateItem(idx, "size", e.target.value)
                         }
-                        className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
                         placeholder="Size"
                         data-ocid="order.input"
                       />
@@ -407,7 +439,7 @@ export default function OrderView({
                       <Input
                         value={item.qty}
                         onChange={(e) => updateItem(idx, "qty", e.target.value)}
-                        className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
                         placeholder="0"
                         data-ocid="order.input"
                       />
@@ -433,7 +465,7 @@ export default function OrderView({
             type="button"
             variant="ghost"
             size="sm"
-            className="mt-1.5 h-7 text-xs text-muted-foreground hover:text-foreground gap-1 px-2"
+            className="mt-1.5 h-7 text-xs text-muted-foreground hover:text-foreground gap-1 px-2 font-semibold"
             onClick={addItem}
             data-ocid="order.button"
           >
@@ -442,17 +474,17 @@ export default function OrderView({
           </Button>
         </div>
 
-        <div className="flex items-center justify-between pt-1 mt-auto">
+        <div className="flex items-center justify-between pt-1 mt-auto border-t border-border">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-muted-foreground hover:text-destructive gap-1.5 px-2"
+                className="h-8 text-xs text-muted-foreground hover:text-destructive gap-1.5 px-2 font-semibold"
                 data-ocid="order.delete_button"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                Delete order
+                Delete
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent data-ocid="order.dialog">
@@ -483,22 +515,23 @@ export default function OrderView({
             onClick={handleSave}
             disabled={updateOrder.isPending}
             size="sm"
+            className="h-8 px-4 text-xs font-bold rounded-full"
             data-ocid="order.save_button"
           >
             {updateOrder.isPending ? (
               <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
             ) : null}
-            {updateOrder.isPending ? "Saving…" : "Save Changes"}
+            {updateOrder.isPending ? "Saving\u2026" : "Save Changes"}
           </Button>
         </div>
       </div>
 
-      {/* Right: Checklist + Files */}
+      {/* Checklist + Files Panel */}
       <div
-        className="bg-card border border-border rounded-xl shadow-card p-6 flex flex-col gap-5"
+        className="bg-card border border-border border-l-4 border-l-violet-500 rounded-xl shadow-sm p-5 flex flex-col gap-5"
         data-ocid="checklist.panel"
       >
-        <h2 className="text-base font-semibold text-foreground">
+        <h2 className="text-sm font-bold text-foreground tracking-tight">
           Order Status Checklist
         </h2>
         <div className="flex flex-col gap-5">
@@ -512,25 +545,30 @@ export default function OrderView({
             return (
               <div key={stage.key}>
                 <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-[11px] font-semibold tracking-widest text-muted-foreground uppercase">
+                  <span
+                    className={cn(
+                      "text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide",
+                      stageBadgeClass[stage.key],
+                    )}
+                  >
                     {stage.label}
                   </span>
                   <span
                     className={cn(
-                      "text-[11px] font-semibold px-2 py-0.5 rounded-full",
+                      "text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums",
                       checked === total
-                        ? "bg-green-100 text-green-700"
-                        : "bg-accent text-primary",
+                        ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300/60"
+                        : "bg-muted text-muted-foreground",
                     )}
                   >
                     {checked}/{total}
                   </span>
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1.5">
                   {stage.items.map((item, idx) => (
                     <div
                       key={item.key}
-                      className="flex items-center gap-2.5 group"
+                      className="flex items-center gap-2.5 group py-0.5"
                       data-ocid={`checklist.item.${idx + 1}`}
                     >
                       <Checkbox
@@ -539,15 +577,15 @@ export default function OrderView({
                         onCheckedChange={(c) =>
                           handleCheckboxChange(stage.key, item.key, !!c)
                         }
-                        className="rounded-sm data-[state=checked]:bg-[oklch(0.384_0.11_244)] data-[state=checked]:border-[oklch(0.384_0.11_244)]"
+                        className="rounded data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                         data-ocid={`checklist.checkbox.${idx + 1}`}
                       />
                       <Label
                         htmlFor={`${stage.key}-${item.key}`}
                         className={cn(
-                          "text-sm transition-colors cursor-pointer",
+                          "text-sm font-medium transition-colors cursor-pointer select-none",
                           stageData[item.key]
-                            ? "text-muted-foreground line-through"
+                            ? "text-muted-foreground line-through decoration-muted-foreground/40"
                             : "text-foreground group-hover:text-primary",
                         )}
                       >
@@ -576,9 +614,7 @@ function Field({
 }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">
-        {label}
-      </Label>
+      <Label className="text-xs font-semibold text-foreground">{label}</Label>
       {children}
     </div>
   );

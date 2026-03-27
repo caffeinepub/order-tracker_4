@@ -22,23 +22,24 @@ export default function OrderTracker() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card/60 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-primary/30 bg-primary sticky top-0 z-10 shadow-md">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Package className="w-4 h-4 text-primary-foreground" />
+            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
+              <Package className="w-3.5 h-3.5 text-white" />
             </div>
-            <h1 className="text-lg font-semibold text-foreground tracking-tight">
+            <span className="text-[15px] font-bold text-white tracking-tight">
               Order Tracker
-            </h1>
+            </span>
           </div>
           <Button
             onClick={() => setNewOrderOpen(true)}
             size="sm"
-            className="gap-1.5"
+            variant="secondary"
+            className="h-8 px-3.5 text-xs font-semibold gap-1.5 rounded-full bg-white/90 text-primary hover:bg-white"
             data-ocid="order.open_modal_button"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             New Order
           </Button>
         </div>
@@ -50,12 +51,15 @@ export default function OrderTracker() {
             className="flex items-center justify-center py-24"
             data-ocid="orders.loading_state"
           >
-            <div className="text-muted-foreground text-sm">Loading orders…</div>
+            <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
+              <div className="w-4 h-4 rounded-full border-2 border-border border-t-primary animate-spin" />
+              Loading orders…
+            </div>
           </div>
         ) : orders.length === 0 ? (
           <EmptyState onNew={() => setNewOrderOpen(true)} />
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <OrderList
               orders={orders}
               selectedId={selectedId}
@@ -68,7 +72,7 @@ export default function OrderTracker() {
               />
             ) : (
               <div
-                className="text-center py-12 text-muted-foreground text-sm"
+                className="text-center py-10 text-muted-foreground text-sm font-medium"
                 data-ocid="orders.empty_state"
               >
                 Select an order above to view details
@@ -78,7 +82,7 @@ export default function OrderTracker() {
         )}
       </main>
 
-      <footer className="border-t border-border mt-12 py-6 text-center text-xs text-muted-foreground">
+      <footer className="border-t border-border mt-16 py-6 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()}.{" "}
         <a
           href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
@@ -102,27 +106,27 @@ export default function OrderTracker() {
 function EmptyState({ onNew }: { onNew: () => void }) {
   return (
     <div
-      className="flex flex-col items-center justify-center py-24 gap-4"
+      className="flex flex-col items-center justify-center py-28 gap-5"
       data-ocid="orders.empty_state"
     >
       <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center">
         <Package className="w-7 h-7 text-primary" />
       </div>
       <div className="text-center">
-        <h2 className="text-base font-semibold text-foreground mb-1">
+        <h2 className="text-base font-bold text-foreground mb-1">
           No orders yet
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground font-medium">
           Create your first order to start tracking
         </p>
       </div>
       <Button
         onClick={onNew}
         size="sm"
-        className="gap-1.5"
+        className="h-8 px-4 text-xs font-semibold gap-1.5 rounded-full"
         data-ocid="orders.primary_button"
       >
-        <Plus className="w-4 h-4" />
+        <Plus className="w-3.5 h-3.5" />
         Create First Order
       </Button>
     </div>

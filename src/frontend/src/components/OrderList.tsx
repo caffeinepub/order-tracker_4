@@ -9,11 +9,21 @@ interface Props {
 }
 
 const statusColor: Record<OverallStatus, string> = {
-  [OverallStatus.waitingForApproval]: "bg-amber-100 text-amber-700",
-  [OverallStatus.inProduction]: "bg-blue-100 text-blue-700",
-  [OverallStatus.packaging]: "bg-purple-100 text-purple-700",
-  [OverallStatus.dispatched]: "bg-orange-100 text-orange-700",
-  [OverallStatus.completed]: "bg-green-100 text-green-700",
+  [OverallStatus.waitingForApproval]:
+    "bg-amber-50 text-amber-700 ring-amber-200/60",
+  [OverallStatus.inProduction]: "bg-blue-50 text-blue-700 ring-blue-200/60",
+  [OverallStatus.packaging]: "bg-violet-50 text-violet-700 ring-violet-200/60",
+  [OverallStatus.dispatched]: "bg-orange-50 text-orange-700 ring-orange-200/60",
+  [OverallStatus.completed]:
+    "bg-emerald-50 text-emerald-700 ring-emerald-200/60",
+};
+
+const statusDot: Record<OverallStatus, string> = {
+  [OverallStatus.waitingForApproval]: "bg-amber-400",
+  [OverallStatus.inProduction]: "bg-blue-500",
+  [OverallStatus.packaging]: "bg-violet-500",
+  [OverallStatus.dispatched]: "bg-orange-500",
+  [OverallStatus.completed]: "bg-emerald-500",
 };
 
 const statusLabel: Record<OverallStatus, string> = {
@@ -34,25 +44,46 @@ export default function OrderList({ orders, selectedId, onSelect }: Props) {
           onClick={() => onSelect(order.id)}
           data-ocid={`orders.item.${i + 1}`}
           className={cn(
-            "flex items-center gap-2.5 px-3.5 py-2 rounded-lg border text-sm transition-all",
+            "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all duration-150",
             selectedId === order.id
-              ? "border-primary bg-accent text-primary font-medium shadow-xs"
-              : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-accent/50",
+              ? "border-primary bg-primary text-primary-foreground shadow-sm"
+              : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-accent/60 hover:shadow-xs",
           )}
         >
-          <span className="font-medium">{order.orderNumber}</span>
-          <span className="text-muted-foreground text-xs">·</span>
-          <span className="text-muted-foreground text-xs truncate max-w-32">
-            {order.clientName}
+          <span className="font-bold tracking-tight">{order.orderNumber}</span>
+          <span
+            className={cn(
+              selectedId === order.id
+                ? "text-white/60"
+                : "text-muted-foreground/60",
+            )}
+          >
+            ·
           </span>
           <span
             className={cn(
-              "text-xs px-1.5 py-0.5 rounded-full font-medium",
-              statusColor[order.overallStatus],
+              "font-medium truncate max-w-28",
+              selectedId === order.id ? "text-white/80" : "text-foreground/70",
             )}
           >
-            {statusLabel[order.overallStatus]}
+            {order.clientName}
           </span>
+          {selectedId !== order.id && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-1",
+                statusColor[order.overallStatus],
+              )}
+            >
+              <span
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full",
+                  statusDot[order.overallStatus],
+                )}
+              />
+              {statusLabel[order.overallStatus]}
+            </span>
+          )}
         </button>
       ))}
     </div>
