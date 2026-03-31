@@ -144,12 +144,11 @@ function formatCheckDate(iso: string | null): string {
 interface ProductItem {
   product: string;
   size: string;
-  qty: string;
   done: boolean;
 }
 
 function emptyItem(): ProductItem {
-  return { product: "", size: "", qty: "", done: false };
+  return { product: "", size: "", done: false };
 }
 
 function parseItems(productType: string): ProductItem[] {
@@ -159,7 +158,6 @@ function parseItems(productType: string): ProductItem[] {
       return parsed.map((row: any) => ({
         product: row.product ?? "",
         size: row.size ?? "",
-        qty: row.qty ?? "",
         done: row.done ?? false,
       }));
     }
@@ -167,7 +165,6 @@ function parseItems(productType: string): ProductItem[] {
     // not JSON
   }
   if (productType) {
-    return [{ product: productType, size: "", qty: "", done: false }];
   }
   return [emptyItem()];
 }
@@ -305,45 +302,50 @@ export default function OrderView({
     <div className="grid grid-cols-1 gap-4">
       {/* Order Details Panel */}
       <div
-        className="bg-card border border-border border-l-4 border-l-primary rounded-xl shadow-sm p-5 flex flex-col gap-5"
+        className="bg-card border border-border border-l-4 border-l-primary rounded-xl shadow-sm p-4 sm:p-5 flex flex-col gap-5"
         data-ocid="order.panel"
       >
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-foreground tracking-tight">
-              Order Details
-            </h2>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5">
-              {order.orderNumber} · {order.clientName}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+        {/* Header: title + meta on first row, actions on second row on mobile */}
+        <div className="flex flex-col gap-2">
+          {/* Row 1: title + status pill */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-foreground tracking-tight">
+                Order Details
+              </h2>
+              <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">
+                {order.orderNumber} · {order.clientName}
+              </p>
+            </div>
             <span
               className={cn(
-                "text-[11px] font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5",
+                "text-[10px] sm:text-[11px] font-bold px-2 sm:px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 whitespace-nowrap flex-shrink-0",
                 statusPillClass[order.overallStatus],
               )}
             >
               {statusLabel[order.overallStatus]}
             </span>
+          </div>
+          {/* Row 2: action buttons — full width on mobile */}
+          <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-7 text-xs gap-1.5 px-2 font-semibold text-muted-foreground hover:text-foreground"
+              className="h-8 text-xs gap-1.5 px-3 font-semibold text-muted-foreground hover:text-foreground flex-1 sm:flex-none"
               onClick={handleShare}
               data-ocid="order.secondary_button"
             >
-              <Link className="w-3.5 h-3.5" />
+              <Link className="w-3.5 h-3.5 flex-shrink-0" />
               Share
             </Button>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-7 text-xs gap-1.5 px-2 font-semibold text-violet-600 hover:text-violet-800 hover:bg-violet-50"
+              className="h-8 text-xs gap-1.5 px-3 font-semibold text-violet-600 border-violet-200 hover:text-violet-800 hover:bg-violet-50 hover:border-violet-300 flex-1 sm:flex-none"
               onClick={handleVendorLink}
               data-ocid="order.button"
             >
-              <Users className="w-3.5 h-3.5" />
+              <Users className="w-3.5 h-3.5 flex-shrink-0" />
               Vendor Link
             </Button>
           </div>
@@ -407,23 +409,20 @@ export default function OrderView({
           <Label className="text-xs font-bold text-foreground mb-2 block">
             Products
           </Label>
-          <div className="border border-border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="border border-border rounded-lg overflow-hidden overflow-x-auto">
+            <table className="w-full text-sm" style={{ minWidth: "320px" }}>
               <thead>
                 <tr className="border-b border-border bg-indigo-50">
-                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2.5 py-2 w-10 uppercase tracking-wider">
+                  <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 w-9 uppercase tracking-wider">
                     Done
                   </th>
                   <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
                     Product
                   </th>
-                  <th className="text-center text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
+                  <th className="text-right text-[10px] font-bold text-indigo-700 px-1 py-2 w-20 uppercase tracking-wider">
                     Size
                   </th>
-                  <th className="text-center text-[10px] font-bold text-indigo-700 px-2 py-2 w-16 uppercase tracking-wider">
-                    Quantity
-                  </th>
-                  <th className="w-7" />
+                  <th className="w-6" />
                 </tr>
               </thead>
               <tbody>
@@ -437,7 +436,7 @@ export default function OrderView({
                     )}
                     data-ocid={`order.item.${idx + 1}`}
                   >
-                    <td className="px-2.5 py-1 text-center">
+                    <td className="px-2 py-1 text-center">
                       <Checkbox
                         checked={item.done}
                         onCheckedChange={(c) => handleDoneToggle(idx, !!c)}
@@ -445,43 +444,31 @@ export default function OrderView({
                         data-ocid={`order.checkbox.${idx + 1}`}
                       />
                     </td>
-                    <td className="px-1 py-0.5">
+                    <td className="px-1 py-0.5 min-w-0">
                       <Input
                         value={item.product}
                         onChange={(e) =>
                           updateItem(idx, "product", e.target.value)
                         }
                         className={cn(
-                          "h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent",
+                          "h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent w-full min-w-0",
                           item.done && "line-through text-muted-foreground",
                         )}
                         placeholder="Product name"
                         data-ocid="order.input"
                       />
                     </td>
-                    <td className="px-1 py-0.5">
+                    <td className="px-1 py-0.5 w-20">
                       <Input
                         value={item.size}
                         onChange={(e) =>
                           updateItem(idx, "size", e.target.value)
                         }
                         className={cn(
-                          "h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent text-center",
+                          "h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent text-right w-full",
                           item.done && "line-through text-muted-foreground",
                         )}
-                        placeholder="Size"
-                        data-ocid="order.input"
-                      />
-                    </td>
-                    <td className="px-1 py-0.5">
-                      <Input
-                        value={item.qty}
-                        onChange={(e) => updateItem(idx, "qty", e.target.value)}
-                        className={cn(
-                          "h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent text-center",
-                          item.done && "line-through text-muted-foreground",
-                        )}
-                        placeholder="0"
+                        placeholder="-"
                         data-ocid="order.input"
                       />
                     </td>
@@ -569,7 +556,7 @@ export default function OrderView({
 
       {/* Checklist + Files Panel */}
       <div
-        className="bg-card border border-border border-l-4 border-l-violet-500 rounded-xl shadow-sm p-5 flex flex-col gap-5"
+        className="bg-card border border-border border-l-4 border-l-violet-500 rounded-xl shadow-sm p-4 sm:p-5 flex flex-col gap-5"
         data-ocid="checklist.panel"
       >
         <h2 className="text-sm font-bold text-foreground tracking-tight">
@@ -627,13 +614,13 @@ export default function OrderView({
                           onCheckedChange={(c) =>
                             handleCheckboxChange(stage.key, item.key, !!c)
                           }
-                          className="rounded data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                          className="rounded data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
                           data-ocid={`checklist.checkbox.${idx + 1}`}
                         />
                         <Label
                           htmlFor={`${stage.key}-${item.key}`}
                           className={cn(
-                            "text-sm font-medium transition-colors cursor-pointer select-none flex items-baseline gap-1",
+                            "text-sm font-medium transition-colors cursor-pointer select-none flex items-baseline gap-1 flex-1 leading-snug",
                             isChecked
                               ? "text-muted-foreground line-through decoration-muted-foreground/40"
                               : "text-foreground group-hover:text-primary",

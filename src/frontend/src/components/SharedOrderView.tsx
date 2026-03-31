@@ -98,7 +98,6 @@ const STAGES: ChecklistStage[] = [
 interface ProductItem {
   product: string;
   size: string;
-  qty: string;
   done: boolean;
 }
 
@@ -109,7 +108,6 @@ function parseItems(productType: string): ProductItem[] {
       return parsed.map((row: any) => ({
         product: row.product ?? "",
         size: row.size ?? "",
-        qty: row.qty ?? "",
         done: row.done ?? false,
       }));
     }
@@ -117,7 +115,7 @@ function parseItems(productType: string): ProductItem[] {
     // not JSON
   }
   if (productType) {
-    return [{ product: productType, size: "", qty: "", done: false }];
+    return [{ product: productType, size: "", done: false }];
   }
   return [];
 }
@@ -343,11 +341,8 @@ export default function SharedOrderView({ orderId }: { orderId: bigint }) {
                         <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
                           Product
                         </th>
-                        <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 uppercase tracking-wider">
+                        <th className="text-right text-[10px] font-bold text-indigo-700 px-1 py-2 w-20 uppercase tracking-wider">
                           Size
-                        </th>
-                        <th className="text-left text-[10px] font-bold text-indigo-700 px-2 py-2 w-16 uppercase tracking-wider">
-                          Quantity
                         </th>
                       </tr>
                     </thead>
@@ -381,23 +376,13 @@ export default function SharedOrderView({ orderId }: { orderId: bigint }) {
                           </td>
                           <td
                             className={cn(
-                              "px-2 py-2 text-sm",
+                              "px-1 py-2 text-sm text-right",
                               item.done
                                 ? "line-through text-muted-foreground"
                                 : "text-foreground",
                             )}
                           >
                             {item.size || "\u2014"}
-                          </td>
-                          <td
-                            className={cn(
-                              "px-2 py-2 text-sm",
-                              item.done
-                                ? "line-through text-muted-foreground"
-                                : "text-foreground",
-                            )}
-                          >
-                            {item.qty || "\u2014"}
                           </td>
                         </tr>
                       ))}

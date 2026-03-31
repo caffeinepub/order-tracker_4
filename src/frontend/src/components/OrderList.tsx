@@ -36,7 +36,10 @@ const statusLabel: Record<OverallStatus, string> = {
 
 export default function OrderList({ orders, selectedId, onSelect }: Props) {
   return (
-    <div className="flex gap-3 flex-wrap" data-ocid="orders.list">
+    <div
+      className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3"
+      data-ocid="orders.list"
+    >
       {orders.map((order, i) => (
         <button
           type="button"
@@ -44,7 +47,7 @@ export default function OrderList({ orders, selectedId, onSelect }: Props) {
           onClick={() => onSelect(order.id)}
           data-ocid={`orders.item.${i + 1}`}
           className={cn(
-            "flex flex-col items-start gap-1.5 px-4 py-3 rounded-xl border text-left transition-all duration-150 min-w-[140px]",
+            "flex flex-col items-start gap-1.5 px-3 py-3 sm:px-4 rounded-xl border text-left transition-all duration-150 w-full sm:min-w-[140px] sm:w-auto",
             selectedId === order.id
               ? "border-primary bg-primary/10 shadow-md ring-1 ring-primary/30"
               : "border-border bg-card hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5",
@@ -60,7 +63,7 @@ export default function OrderList({ orders, selectedId, onSelect }: Props) {
           </span>
           <span
             className={cn(
-              "text-xs font-medium truncate max-w-36 leading-none",
+              "text-xs font-medium truncate w-full leading-none",
               selectedId === order.id
                 ? "text-primary/70"
                 : "text-muted-foreground",

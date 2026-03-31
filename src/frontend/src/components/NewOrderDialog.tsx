@@ -60,12 +60,11 @@ const statusLabel: Record<OverallStatus, string> = {
 interface ProductItem {
   product: string;
   size: string;
-  qty: string;
   done: boolean;
 }
 
 function emptyItem(): ProductItem {
-  return { product: "", size: "", qty: "", done: false };
+  return { product: "", size: "", done: false };
 }
 
 interface Props {
@@ -224,9 +223,6 @@ export default function NewOrderDialog({
                     <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5">
                       Size
                     </th>
-                    <th className="text-left text-[11px] font-semibold text-muted-foreground px-2 py-1.5 w-16">
-                      Quantity
-                    </th>
                     <th className="w-6" />
                   </tr>
                 </thead>
@@ -265,17 +261,6 @@ export default function NewOrderDialog({
                           }
                           className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
                           placeholder="Size"
-                          data-ocid="order.input"
-                        />
-                      </td>
-                      <td className="px-1 py-0.5">
-                        <Input
-                          value={item.qty}
-                          onChange={(e) =>
-                            updateItem(idx, "qty", e.target.value)
-                          }
-                          className="h-7 text-sm border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent"
-                          placeholder="0"
                           data-ocid="order.input"
                         />
                       </td>
