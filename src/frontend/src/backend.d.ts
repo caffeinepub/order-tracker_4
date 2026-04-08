@@ -13,6 +13,12 @@ export interface Size {
     length: number;
     width: number;
 }
+export interface Packaging {
+    quantityCounted: boolean;
+    labelsCorrect: boolean;
+    photosTaken: boolean;
+    correctPackagingTypeUsed: boolean;
+}
 export interface OrderInput {
     confirmationChecklist: ConfirmationChecklist;
     clientName: string;
@@ -23,12 +29,6 @@ export interface OrderInput {
     quantity: bigint;
     orderNumber: string;
     overallStatus: OverallStatus;
-}
-export interface Packaging {
-    quantityCounted: boolean;
-    labelsCorrect: boolean;
-    photosTaken: boolean;
-    correctPackagingTypeUsed: boolean;
 }
 export interface OrderFileEntry {
     hash: string;

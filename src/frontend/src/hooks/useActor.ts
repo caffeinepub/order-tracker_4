@@ -1,56 +1,39 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
-import type { backendInterface } from "../backend";
-import { createActorWithConfig } from "../config";
-import { useInternetIdentity } from "./useInternetIdentity";
+// Thin wrapper that pre-binds the project's createActor factory to the
+// generic useActor() hook from @caffeineai/core-infrastructure.
+// Casts the actor to the full backend interface so TypeScript knows about
+// all actor methods (getAllOrders, createOrder, getOrder, etc.).
 
-const ACTOR_QUERY_KEY = "actor";
-export function useActor() {
-  const { identity } = useInternetIdentity();
-  const queryClient = useQueryClient();
-  const actorQuery = useQuery<backendInterface>({
-    queryKey: [ACTOR_QUERY_KEY, identity?.getPrincipal().toString()],
-    queryFn: async () => {
-      const isAuthenticated = !!identity;
+import { useActor as useActorBase } from "@caffeineai/core-infrastructure";
+import { createActor } from "../backend";
+import type { OrderData, OrderInput } from "../types";
 
-      if (!isAuthenticated) {
-        // Return anonymous actor if not authenticated
-        return await createActorWithConfig();
-      }
+export interface BackendActor {
+  getAllOrders(): Promise<OrderData[]>;
+  createOrder(input: OrderInput): Promise<bigint>;
+  getOrder(id: bigint): Promise<OrderData>;
+  updateOrder(id: bigint, input: OrderInput): Promise<OrderData>;
+  deleteOrder(id: bigint): Promise<void>;
+  getOrderFiles(
+    orderId: bigint,
+  ): Promise<
+    { hash: string; name: string; mimeType: string; uploadedAt: bigint }[]
+  >;
+  addOrderFile(
+    orderId: bigint,
+    hash: string,
+    name: string,
+    mimeType: string,
+  ): Promise<void>;
+  removeOrderFile(orderId: bigint, hash: string): Promise<void>;
+}
 
-      const actorOptions = {
-        agentOptions: {
-          identity,
-        },
-      };
-
-      const actor = await createActorWithConfig(actorOptions);
-      return actor;
-    },
-    // Only refetch when identity changes
-    staleTime: Number.POSITIVE_INFINITY,
-    // This will cause the actor to be recreated when the identity changes
-    enabled: true,
-  });
-
-  // When the actor changes, invalidate dependent queries
-  useEffect(() => {
-    if (actorQuery.data) {
-      queryClient.invalidateQueries({
-        predicate: (query) => {
-          return !query.queryKey.includes(ACTOR_QUERY_KEY);
-        },
-      });
-      queryClient.refetchQueries({
-        predicate: (query) => {
-          return !query.queryKey.includes(ACTOR_QUERY_KEY);
-        },
-      });
-    }
-  }, [actorQuery.data, queryClient]);
-
+export function useActor(): {
+  actor: BackendActor | null;
+  isFetching: boolean;
+} {
+  const result = useActorBase(createActor);
   return {
-    actor: actorQuery.data || null,
-    isFetching: actorQuery.isFetching,
+    actor: result.actor as BackendActor | null,
+    isFetching: result.isFetching,
   };
 }

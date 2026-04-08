@@ -24,9 +24,9 @@ import { cn } from "@/lib/utils";
 import { Link, Loader2, Plus, Trash2, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { ConfirmationChecklist, OrderData } from "../backend";
-import { OverallStatus } from "../backend";
 import { useDeleteOrder, useUpdateOrder } from "../hooks/useQueries";
+import type { ConfirmationChecklist, OrderData } from "../types";
+import { OverallStatus } from "../types";
 import OrderFiles from "./OrderFiles";
 
 const statusLabel: Record<OverallStatus, string> = {

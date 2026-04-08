@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { OrderData, OrderInput } from "../backend";
+import type { OrderData, OrderInput } from "../types";
 import { useActor } from "./useActor";
 
 export function useGetAllOrders() {

@@ -1,0 +1,83 @@
+// Version: 1.0.0
+type ConfirmationChecklist__208131930 =
+  {
+    dispatch : Dispatch__639539663;
+    packaging : Packaging__801746343;
+    preProduction : PreProduction__772367452;
+    production : Production__628444959
+  };
+type Data__791452850<K, V> =
+  {var count : Nat__490723111; kvs : [var ?(K, V)]};
+type Dispatch__639539663 =
+  {
+    clientInformed : Bool;
+    dispatchDateConfirmed : Bool;
+    trackingShared : Bool;
+    transportBooked : Bool
+  };
+type Int__270357528 = Int__616954475;
+type Int__616954475 = Int;
+type Internal__8484328<K, V> =
+  {children : [var ?Node__46230540<K, V>]; data : Data__791452850<K, V>};
+type Leaf__809889148<K, V> = {data : Data__791452850<K, V>};
+type Nat__490723111 = Nat__920180692;
+type Nat__920180692 = Nat;
+type Node__46230540<K, V> =
+  {#internal : Internal__8484328<K, V>; #leaf : Leaf__809889148<K, V>};
+type OrderData__98954728 =
+  {
+    clientName : Text;
+    color : Text;
+    confirmationChecklist : ConfirmationChecklist__208131930;
+    createdAt : Time__900049286;
+    dispatchDate : Time__900049286;
+    id : Nat;
+    orderNumber : Text;
+    overallStatus : OverallStatus__983719928;
+    productType : Text;
+    quantity : Nat;
+    size : Size__428150171;
+    updatedAt : Time__900049286
+  };
+type OrderFileEntry__154351869 =
+  {hash : Text; mimeType : Text; name : Text; uploadedAt : Int};
+type OverallStatus__983719928 =
+  {#completed; #dispatched; #inProduction; #packaging; #waitingForApproval};
+type Packaging__801746343 =
+  {
+    correctPackagingTypeUsed : Bool;
+    labelsCorrect : Bool;
+    photosTaken : Bool;
+    quantityCounted : Bool
+  };
+type PreProduction__772367452 =
+  {
+    colorReferenceConfirmed : Bool;
+    materialConfirmedAvailable : Bool;
+    sampleApproved : Bool;
+    sizeConfirmed : Bool;
+    timelineCommitted : Bool
+  };
+type Production__628444959 =
+  {
+    colorMatchedWithSample : Bool;
+    designFileCAD : Bool;
+    sizeVerifiedDuringProduction : Bool;
+    yarnDyingProcess : Bool
+  };
+type Size__428150171 = {height : Float; length : Float; width : Float};
+type Time__796480547 = Int__270357528;
+type Time__900049286 = Time__796480547;
+actor {
+  stable var nextId : Nat;
+  stable orderFiles :
+    {
+      var root : Node__46230540<Nat, [OrderFileEntry__154351869]>;
+      var size : Nat__490723111
+    };
+  stable orders :
+    {
+      var root : Node__46230540<Nat, OrderData__98954728>;
+      var size : Nat__490723111
+    }
+};

@@ -1,0 +1,118 @@
+type _ImmutableObjectStorageRefillResult = 
+ record {
+   success: opt bool;
+   topped_up_amount: opt nat;
+ };
+type _ImmutableObjectStorageRefillInformation = record {
+                                                  proposed_top_up_amount:
+                                                   opt nat;};
+type _ImmutableObjectStorageCreateCertificateResult = 
+ record {
+   blob_hash: text;
+   method: text;
+ };
+type Time = int;
+type Size = 
+ record {
+   height: float64;
+   length: float64;
+   width: float64;
+ };
+type Production = 
+ record {
+   colorMatchedWithSample: bool;
+   designFileCAD: bool;
+   sizeVerifiedDuringProduction: bool;
+   yarnDyingProcess: bool;
+ };
+type PreProduction = 
+ record {
+   colorReferenceConfirmed: bool;
+   materialConfirmedAvailable: bool;
+   sampleApproved: bool;
+   sizeConfirmed: bool;
+   timelineCommitted: bool;
+ };
+type Packaging = 
+ record {
+   correctPackagingTypeUsed: bool;
+   labelsCorrect: bool;
+   photosTaken: bool;
+   quantityCounted: bool;
+ };
+type OverallStatus = 
+ variant {
+   completed;
+   dispatched;
+   inProduction;
+   packaging;
+   waitingForApproval;
+ };
+type OrderInput = 
+ record {
+   clientName: text;
+   color: text;
+   confirmationChecklist: ConfirmationChecklist;
+   dispatchDate: Time;
+   orderNumber: text;
+   overallStatus: OverallStatus;
+   productType: text;
+   quantity: nat;
+   size: Size;
+ };
+type OrderFileEntry = 
+ record {
+   hash: text;
+   mimeType: text;
+   name: text;
+   uploadedAt: int;
+ };
+type OrderData = 
+ record {
+   clientName: text;
+   color: text;
+   confirmationChecklist: ConfirmationChecklist;
+   createdAt: Time;
+   dispatchDate: Time;
+   id: nat;
+   orderNumber: text;
+   overallStatus: OverallStatus;
+   productType: text;
+   quantity: nat;
+   size: Size;
+   updatedAt: Time;
+ };
+type Dispatch = 
+ record {
+   clientInformed: bool;
+   dispatchDateConfirmed: bool;
+   trackingShared: bool;
+   transportBooked: bool;
+ };
+type ConfirmationChecklist = 
+ record {
+   dispatch: Dispatch;
+   packaging: Packaging;
+   preProduction: PreProduction;
+   production: Production;
+ };
+service : {
+  _immutableObjectStorageBlobsAreLive: (hashes: vec blob) -> (vec bool) query;
+  _immutableObjectStorageBlobsToDelete: () -> (vec blob) query;
+  _immutableObjectStorageConfirmBlobDeletion: (blobs: vec blob) -> ();
+  _immutableObjectStorageCreateCertificate: (blobHash: text) ->
+   (_ImmutableObjectStorageCreateCertificateResult);
+  _immutableObjectStorageRefillCashier: (refillInformation:
+   opt _ImmutableObjectStorageRefillInformation) ->
+   (_ImmutableObjectStorageRefillResult);
+  _immutableObjectStorageUpdateGatewayPrincipals: () -> ();
+  addOrderFile: (orderId: nat, hash: text, name: text, mimeType: text) -> ();
+  createOrder: (input: OrderInput) -> (nat);
+  deleteOrder: (id: nat) -> ();
+  getAllOrders: () -> (vec OrderData) query;
+  getOrder: (id: nat) -> (OrderData) query;
+  getOrderFiles: (orderId: nat) -> (vec OrderFileEntry) query;
+  getOrdersByClientName: (clientName: text) -> (vec OrderData) query;
+  removeOrderFile: (orderId: nat, hash: text) -> ();
+  updateOrder: (id: nat, input: OrderInput) -> ();
+}

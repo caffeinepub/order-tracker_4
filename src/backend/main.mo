@@ -10,12 +10,11 @@ import Float "mo:core/Float";
 import Int "mo:core/Int";
 import Principal "mo:core/Principal";
 
-import Storage "blob-storage/Storage";
-import MixinStorage "blob-storage/Mixin";
+import MixinObjectStorage "mo:caffeineai-object-storage/Mixin";
 
 
 actor {
-  include MixinStorage();
+  include MixinObjectStorage();
 
   func boolToNat(b : Bool) : Nat {
     if (b) { 1 } else { 0 };

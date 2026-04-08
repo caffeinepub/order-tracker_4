@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { loadConfig } from "../config";
 import { useOrderFiles } from "../hooks/useOrderFiles";
 import { StorageClient } from "../utils/StorageClient";
+import ImageLightbox from "./ImageLightbox";
 
 interface UploadingFile {
   id: string;
@@ -24,6 +25,7 @@ export default function OrderFiles({ orderId }: { orderId: bigint }) {
   const [uploading, setUploading] = useState<UploadingFile[]>([]);
   const [resolvedFiles, setResolvedFiles] = useState<ResolvedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [lightboxFile, setLightboxFile] = useState<ResolvedFile | null>(null);
   const storageClientRef = useRef<StorageClient | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -207,10 +209,21 @@ export default function OrderFiles({ orderId }: { orderId: bigint }) {
             <div
               key={f.hash}
               className="group relative rounded-lg overflow-hidden border border-border shadow-sm cursor-pointer"
-              onClick={() => window.open(f.url, "_blank")}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ")
+              onClick={() => {
+                if (isImage(f.mimeType)) {
+                  setLightboxFile(f);
+                } else {
                   window.open(f.url, "_blank");
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  if (isImage(f.mimeType)) {
+                    setLightboxFile(f);
+                  } else {
+                    window.open(f.url, "_blank");
+                  }
+                }
               }}
               // biome-ignore lint/a11y/useSemanticElements: file card needs overflow+group styles not possible on <a>
               role="button"
@@ -254,6 +267,14 @@ export default function OrderFiles({ orderId }: { orderId: bigint }) {
         >
           No files uploaded yet
         </p>
+      )}
+
+      {lightboxFile && (
+        <ImageLightbox
+          src={lightboxFile.url}
+          alt={lightboxFile.name}
+          onClose={() => setLightboxFile(null)}
+        />
       )}
     </div>
   );

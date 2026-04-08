@@ -4,12 +4,13 @@ import { HttpAgent } from "@icp-sdk/core/agent";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ConfirmationChecklist, OrderData } from "../backend";
-import { OverallStatus } from "../backend";
 import { loadConfig } from "../config";
 import { useActor } from "../hooks/useActor";
 import { useOrderFiles } from "../hooks/useOrderFiles";
+import type { ConfirmationChecklist, OrderData } from "../types";
+import { OverallStatus } from "../types";
 import { StorageClient } from "../utils/StorageClient";
+import ImageLightbox from "./ImageLightbox";
 
 const statusLabel: Record<OverallStatus, string> = {
   [OverallStatus.waitingForApproval]: "Waiting for Approval",
@@ -144,6 +145,7 @@ interface ResolvedFile {
 function SharedOrderFiles({ orderId }: { orderId: bigint }) {
   const { files } = useOrderFiles(orderId);
   const [resolvedFiles, setResolvedFiles] = useState<ResolvedFile[]>([]);
+  const [lightboxFile, setLightboxFile] = useState<ResolvedFile | null>(null);
   const storageClientRef = useRef<StorageClient | null>(null);
 
   const getStorageClient = useCallback(async (): Promise<StorageClient> => {
@@ -200,37 +202,54 @@ function SharedOrderFiles({ orderId }: { orderId: bigint }) {
         Order Files
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {resolvedFiles.map((f, idx) => (
-          <a
-            key={f.hash}
-            href={f.url}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-lg overflow-hidden border border-border shadow-sm block"
-            data-ocid={`shared.files.item.${idx + 1}`}
-          >
-            {f.mimeType.startsWith("image/") ? (
+        {resolvedFiles.map((f, idx) => {
+          const isImage = f.mimeType.startsWith("image/");
+          return isImage ? (
+            <button
+              key={f.hash}
+              type="button"
+              className="rounded-lg overflow-hidden border border-border shadow-sm block cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={() => setLightboxFile(f)}
+              data-ocid={`shared.files.item.${idx + 1}`}
+            >
               <img
                 src={f.url}
                 alt={f.name}
                 className="w-full aspect-video object-cover"
               />
-            ) : (
+            </button>
+          ) : (
+            <a
+              key={f.hash}
+              href={f.url}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg overflow-hidden border border-border shadow-sm block"
+              data-ocid={`shared.files.item.${idx + 1}`}
+            >
               <div className="w-full aspect-video flex flex-col items-center justify-center bg-muted/50 gap-1 px-2">
                 <FileText className="w-5 h-5 text-muted-foreground" />
                 <p className="text-[10px] text-muted-foreground text-center truncate w-full">
                   {f.name}
                 </p>
               </div>
-            )}
-          </a>
-        ))}
+            </a>
+          );
+        })}
         {files.length > 0 && resolvedFiles.length === 0 && (
           <div className="col-span-2 sm:col-span-3 flex justify-center py-4">
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
         )}
       </div>
+
+      {lightboxFile && (
+        <ImageLightbox
+          src={lightboxFile.url}
+          alt={lightboxFile.name}
+          onClose={() => setLightboxFile(null)}
+        />
+      )}
     </div>
   );
 }

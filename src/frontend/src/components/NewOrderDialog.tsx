@@ -18,8 +18,8 @@ import {
 import { Loader2, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { OverallStatus } from "../backend";
 import { useCreateOrder } from "../hooks/useQueries";
+import { OverallStatus } from "../types";
 
 const emptyChecklist = {
   preProduction: {

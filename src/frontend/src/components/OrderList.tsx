@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
-import type { OrderData } from "../backend";
-import { OverallStatus } from "../backend";
+import type { OrderData } from "../types";
+import { OverallStatus } from "../types";
 
 interface Props {
   orders: OrderData[];

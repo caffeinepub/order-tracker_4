@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Package, Plus } from "lucide-react";
 import { useState } from "react";
-import type { OrderData } from "../backend";
 import { useGetAllOrders } from "../hooks/useQueries";
+import type { OrderData } from "../types";
 import NewOrderDialog from "./NewOrderDialog";
 import OrderList from "./OrderList";
 import OrderView from "./OrderView";

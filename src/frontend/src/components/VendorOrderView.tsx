@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import type { OrderData } from "../backend";
 import { useActor } from "../hooks/useActor";
+import type { OrderData } from "../types";
 import OrderView from "./OrderView";
 
 export default function VendorOrderView({ orderId }: { orderId: bigint }) {
